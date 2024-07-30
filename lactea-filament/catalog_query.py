@@ -4,7 +4,7 @@ from astroquery.vizier import Vizier
 import numpy as np
 import matplotlib.pyplot as plt
 
-def get_catalog(catalog_name, coord, w=1.0*u.arcmin, l=1.0*u.arcmin):  #, max_star=50):
+def get_catalog(catalog_name, coord, l=1.0*u.arcmin, w=1.0*u.arcmin):  #, max_star=50):
     """ Get Catalog
     
     Function to get catalog at a given coordinate and radius using Vizier.
@@ -20,6 +20,8 @@ def get_catalog(catalog_name, coord, w=1.0*u.arcmin, l=1.0*u.arcmin):  #, max_st
     """
     #try:
     Vizier.ROW_LIMIT = 5e4
+    Vizier.TIMEOUT = 1800
+    Vizier.VIZIER_SERVER = 'vizier.cfa.harvard.edu/'
     #Vizier.query_region(coordinates=coord, width=width, height=height, catalog=['II/348/vvv2'])[0]
     guide = Vizier.query_region(coordinates=coord, width=w, height=l, catalog=[catalog_name])[0]
     #except:
@@ -37,7 +39,7 @@ def get_catalog(catalog_name, coord, w=1.0*u.arcmin, l=1.0*u.arcmin):  #, max_st
 
     return guide
 
-def get_VVV_catalog_circ(coord, radius=1.0*u.arcmin):  #, max_star=50):
+def get_VVV_catalog(coord, l=1.0*u.arcmin, w=1.0*u.arcmin):  #, max_star=50):
     """ Get VVV Catalog
     
     Function to get VVV catalog at a given coordinate and radius using Vizier.
@@ -51,21 +53,5 @@ def get_VVV_catalog_circ(coord, radius=1.0*u.arcmin):  #, max_star=50):
 
     """
     # Vizier.query_region(coordinates=coord, width=width, height=height, catalog=['II/348/vvv2'])[0]
-    return get_catalog('II/376/tablee2', coord, w=radius, l=radius)
-
-def get_VVV_catalog(coord, w=1.0*u.arcmin, l=1.0*u.arcmin):  #, max_star=50):
-    """ Get VVV Catalog
-    
-    Function to get VVV catalog at a given coordinate and radius using Vizier.
-
-    Args:
-        coord (SkyCoord): Coordinates of the center of the search.
-        radius (Quantity): Radius of the search.
-
-    Returns:
-        Table: Table of the catalog.
-
-    """
-    # Vizier.query_region(coordinates=coord, width=width, height=height, catalog=['II/348/vvv2'])[0]
-    return get_catalog('II/376/tablee2', coord, w=w, l=l)
+    return get_catalog('II/376/vvv4', coord, l=l, w=w)
 
