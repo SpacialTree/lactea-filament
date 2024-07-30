@@ -51,7 +51,7 @@ def get_VVV_catalog_circ(coord, radius=1.0*u.arcmin):  #, max_star=50):
 
     """
     # Vizier.query_region(coordinates=coord, width=width, height=height, catalog=['II/348/vvv2'])[0]
-    return get_catalog('II/376', coord, w=radius, l=radius)
+    return get_catalog('II/376/tablee2', coord, w=radius, l=radius)
 
 def get_VVV_catalog(coord, w=1.0*u.arcmin, l=1.0*u.arcmin):  #, max_star=50):
     """ Get VVV Catalog
@@ -67,5 +67,5 @@ def get_VVV_catalog(coord, w=1.0*u.arcmin, l=1.0*u.arcmin):  #, max_star=50):
 
     """
     # Vizier.query_region(coordinates=coord, width=width, height=height, catalog=['II/348/vvv2'])[0]
-    return get_catalog('II/376', coord, w=w, l=l)
+    return get_catalog('II/376/tablee2', coord, w=w, l=l)
 
