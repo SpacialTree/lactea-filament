@@ -23,28 +23,28 @@ def get_cutout(filename, position, l, w, format='fits'):
     return cutout
 
 
-def get_cutout_405(position, l, w):
-    fn = '/orange/adamginsburg/jwst/cloudc/images/F405_reproj_merged-fortricolor.fits'
+def get_cutout_405(position, l, w, basepath='/orange/adamginsburg/jwst/'):
+    fn = f'{basepath}/cloudc/images/F405_reproj_merged-fortricolor.fits'
     return get_cutout(fn, position, l, w)
     
-def get_cutout_410(position, l, w):
-    fn = '/orange/adamginsburg/jwst/cloudc/images/F410_reproj_merged-fortricolor.fits'
+def get_cutout_410(position, l, w, basepath='/orange/adamginsburg/jwst/'):
+    fn = f'{basepath}/cloudc/images/F410_reproj_merged-fortricolor.fits'
     return get_cutout(fn, position, l, w)
 
-def get_cutout_466(position, l, w):
-    fn = '/orange/adamginsburg/jwst/cloudc/images/F466_reproj_merged-fortricolor.fits'
+def get_cutout_466(position, l, w, basepath='/orange/adamginsburg/jwst/'):
+    fn = f'{basepath}/cloudc/images/F466_reproj_merged-fortricolor.fits'
     return get_cutout(fn, position, l, w)
 
-def get_cutout_187(position, l, w):
-    fn = '/orange/adamginsburg/jwst/cloudc/images/F187_reproj_merged-fortricolor.fits'
+def get_cutout_187(position, l, w, basepath='/orange/adamginsburg/jwst/'):
+    fn = f'{basepath}/cloudc/images/F187_reproj_merged-fortricolor.fits'
     return get_cutout(fn, position, l, w)
     
-def get_cutout_182(position, l, w):
-    fn = '/orange/adamginsburg/jwst/cloudc/images/F182_reproj_merged-fortricolor.fits'
+def get_cutout_182(position, l, w, basepath='/orange/adamginsburg/jwst/'):
+    fn = f'{basepath}/cloudc/images/F182_reproj_merged-fortricolor.fits'
     return get_cutout(fn, position, l, w)
 
-def get_cutout_212(position, l, w):
-    fn = '/orange/adamginsburg/jwst/cloudc/images/F212_reproj_merged-fortricolor.fits'
+def get_cutout_212(position, l, w, basepath='/orange/adamginsburg/jwst/'):
+    fn = f'{basepath}/cloudc/images/F212_reproj_merged-fortricolor.fits'
     return get_cutout(fn, position, l, w)
 
 def get_cutout_rgb(position, l, w):
