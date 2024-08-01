@@ -118,9 +118,9 @@ def get_cutout_glimpse_rgb(position, l, w):
     ).swapaxes(0,2).swapaxes(0,1)
 
     rgb_scaled = np.array([
-        simple_norm(rgb[:,:,0], stretch='asinh', min_cut=-1, max_cut=350)(rgb[:,:,0]),
-        simple_norm(rgb[:,:,1], stretch='asinh', min_cut=-1, max_cut=200)(rgb[:,:,1]),
-        simple_norm(rgb[:,:,2], stretch='asinh', min_cut=-1, max_cut=100)(rgb[:,:,2]),
+        simple_norm(rgb[:,:,0], stretch='asinh', vmin=-1, vmax=350)(rgb[:,:,0]),
+        simple_norm(rgb[:,:,1], stretch='asinh', vmin=-1, vmax=200)(rgb[:,:,1]),
+        simple_norm(rgb[:,:,2], stretch='asinh', vmin=-1, vmax=100)(rgb[:,:,2]),
     ]).swapaxes(0,2)
 
     return rgb_scaled.swapaxes(0,1), cutout_I1.wcs
