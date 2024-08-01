@@ -3,7 +3,7 @@ from astropy.io import fits
 from astropy.wcs import WCS
 from astropy.nddata import Cutout2D
 from astropy.visualization import simple_norm
-
+from spectral_cube import SpectralCube
 
 
 def get_cutout(filename, position, l, w, format='fits'):
@@ -60,9 +60,29 @@ def get_cutout_rgb(position, l, w):
         ]
     ).swapaxes(0,2).swapaxes(0,1)
     rgb_scaled = np.array([
-        simple_norm(rgb[:,:,0], stretch='asinh', min_cut=-1, max_cut=90)(rgb[:,:,0]),
-        simple_norm(rgb[:,:,1], stretch='asinh', min_cut=-2, max_cut=210)(rgb[:,:,1]),
-        simple_norm(rgb[:,:,2], stretch='asinh', min_cut=-1, max_cut=120)(rgb[:,:,2]),
+        simple_norm(rgb[:,:,0], stretch='asinh', vmin=-1, vmax=90)(rgb[:,:,0]),
+        simple_norm(rgb[:,:,1], stretch='asinh', vmin=-2, vmax=210)(rgb[:,:,1]),
+        simple_norm(rgb[:,:,2], stretch='asinh', vmin=-1, vmax=120)(rgb[:,:,2]),
+    ]).swapaxes(0,2)
+
+    return rgb_scaled.swapaxes(0,1), cutout_R.wcs
+
+def get_cutout_rgb3(position, l, w):
+    cutout_R = get_cutout_410(position, l, w)
+    cutout_B = get_cutout_212(position, l, w)
+    cutout_G = get_cutout_182(position, l, w)
+
+    rgb = np.array(
+        [
+            cutout_R.data,
+            cutout_G.data,
+            cutout_B.data
+        ]
+    ).swapaxes(0,2).swapaxes(0,1)
+    rgb_scaled = np.array([
+        simple_norm(rgb[:,:,0], stretch='asinh', vmin=-1, vmax=90)(rgb[:,:,0]),
+        simple_norm(rgb[:,:,1], stretch='asinh', vmin=-2, vmax=100)(rgb[:,:,1]),
+        simple_norm(rgb[:,:,2], stretch='asinh', vmin=-1, vmax=120)(rgb[:,:,2]),
     ]).swapaxes(0,2)
 
     return rgb_scaled.swapaxes(0,1), cutout_R.wcs
@@ -104,3 +124,8 @@ def get_cutout_glimpse_rgb(position, l, w):
     ]).swapaxes(0,2)
 
     return rgb_scaled.swapaxes(0,1), cutout_I1.wcs
+
+def get_alma_B3(position, l, w):
+    B3_cont_fn = '/orange/adamginsburg/jwst/cloudc/alma/ACES/uid___A001_X15a0_X1a8.s36_0.Sgr_A_star_sci.spw33_35.cont.I.iter1.image.tt0'
+    cutout_alma = get_cutout(B3_cont_fn, position, l, w, format='casa')
+    return cutout_alma
