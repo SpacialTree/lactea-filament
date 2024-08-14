@@ -4,6 +4,8 @@ from astropy.wcs import WCS
 from astropy.nddata import Cutout2D
 from astropy.visualization import simple_norm
 from spectral_cube import SpectralCube
+import regions
+from regions import Regions
 
 hpg = False
 
@@ -13,8 +15,8 @@ if hpg:
     fn_cont_B3 = '/orange/adamginsburg/jwst/cloudc/alma/ACES/uid___A001_X15a0_X1a8.s36_0.Sgr_A_star_sci.spw33_35.cont.I.iter1.image.tt0'
     fn_cont_B6 = ''
 else:
-    basepath_jwst = '~/research/Research/JWST/'
-    basepath_glimpse = '~/research/Research/glimpse/'
+    basepath_jwst = '/home/savannahgramze/research/Research/JWST/cloudc/images/'
+    basepath_glimpse = '/home/savannahgramze/research/Research/glimpse/'
 
 fn_405 = f'{basepath_jwst}/F405_reproj_merged-fortricolor.fits'
 fn_410 = f'{basepath_jwst}/F410_reproj_merged-fortricolor.fits'
@@ -43,6 +45,13 @@ def get_cutout(filename, position, l, w, format='fits'):
     cutout = Cutout2D(data, position=position, size=size, wcs=ww)
     return cutout
 
+def get_cutout_region(position, l, w, frame='icrs'):
+    if frame == 'galactic':
+        return regions.RectangleSkyRegion(center=position.galactic, width=l, height=w)
+    elif frame == 'icrs':
+        return regions.RectangleSkyRegion(center=position.icrs, width=l, height=w)
+    else:
+        raise ValueError('frame must be either "icrs" or "galactic"')
 
 def get_cutout_405(position, l, w, basepath='/orange/adamginsburg/jwst/'):
     fn = f'{basepath}/cloudc/images/F405_reproj_merged-fortricolor.fits'
