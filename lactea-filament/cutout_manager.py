@@ -53,29 +53,23 @@ def get_cutout_region(position, l, w, frame='icrs'):
     else:
         raise ValueError('frame must be either "icrs" or "galactic"')
 
-def get_cutout_405(position, l, w, basepath='/orange/adamginsburg/jwst/'):
-    fn = f'{basepath}/cloudc/images/F405_reproj_merged-fortricolor.fits'
-    return get_cutout(fn, position, l, w)
+def get_cutout_405(position, l, w):
+    return get_cutout(fn_405, position, l, w)
     
-def get_cutout_410(position, l, w, basepath='/orange/adamginsburg/jwst/'):
-    fn = f'{basepath}/cloudc/images/F410_reproj_merged-fortricolor.fits'
-    return get_cutout(fn, position, l, w)
+def get_cutout_410(position, l, w):
+    return get_cutout(fn_410, position, l, w)
 
-def get_cutout_466(position, l, w, basepath='/orange/adamginsburg/jwst/'):
-    fn = f'{basepath}/cloudc/images/F466_reproj_merged-fortricolor.fits'
-    return get_cutout(fn, position, l, w)
+def get_cutout_466(position, l, w):
+    return get_cutout(fn_466, position, l, w)
 
-def get_cutout_187(position, l, w, basepath='/orange/adamginsburg/jwst/'):
-    fn = f'{basepath}/cloudc/images/F187_reproj_merged-fortricolor.fits'
-    return get_cutout(fn, position, l, w)
-    
-def get_cutout_182(position, l, w, basepath='/orange/adamginsburg/jwst/'):
-    fn = f'{basepath}/cloudc/images/F182_reproj_merged-fortricolor.fits'
-    return get_cutout(fn, position, l, w)
+def get_cutout_187(position, l, w):
+    return get_cutout(fn_187, position, l, w)
 
-def get_cutout_212(position, l, w, basepath='/orange/adamginsburg/jwst/'):
-    fn = f'{basepath}/cloudc/images/F212_reproj_merged-fortricolor.fits'
-    return get_cutout(fn, position, l, w)
+def get_cutout_182(position, l, w):
+    return get_cutout(fn_182, position, l, w)
+
+def get_cutout_212(position, l, w):
+    return get_cutout(fn_212, position, l, w)
 
 def get_cutout_rgb(position, l, w):
     cutout_R = get_cutout_466(position, l, w)
@@ -118,20 +112,16 @@ def get_cutout_rgb3(position, l, w):
     return rgb_scaled.swapaxes(0,1), cutout_R.wcs
 
 def get_cutout_I1(position, l, w):
-    fn = '/orange/adamginsburg/cmz/glimpse_data/GLM_00000+0000_mosaic_I1.fits'
-    return get_cutout(fn, position, l, w)
+    return get_cutout(fn_I1, position, l, w)
 
 def get_cutout_I2(position, l, w):
-    fn = '/orange/adamginsburg/cmz/glimpse_data/GLM_00000+0000_mosaic_I2.fits'
-    return get_cutout(fn, position, l, w)
+    return get_cutout(fn_I2, position, l, w)
 
 def get_cutout_I3(position, l, w):
-    fn = '/orange/adamginsburg/cmz/glimpse_data/GLM_00000+0000_mosaic_I3.fits'
-    return get_cutout(fn, position, l, w)
+    return get_cutout(fn_I3, position, l, w)
 
 def get_cutout_I4(position, l, w):
-    fn = '/orange/adamginsburg/cmz/glimpse_data/GLM_00000+0000_mosaic_I4.fits'
-    return get_cutout(fn, position, l, w)
+    return get_cutout(fn_I4, position, l, w)
 
 def get_cutout_glimpse_rgb(position, l, w):
     cutout_I1 = get_cutout_I1(position, l, w)
