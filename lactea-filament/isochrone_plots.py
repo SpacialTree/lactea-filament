@@ -41,12 +41,12 @@ class Isochrone(Plotter):
         self.ext = CT06_MWGC()
         self.Av = Av
 
-        self.f405n = self.table['F405N'] + self.distance_modulus + self.Av*self.ext(4.05*u.micron)
-        self.f410m = self.table['F410M'] + self.distance_modulus + self.Av*self.ext(4.10*u.micron)
-        self.f466n = self.table['F466N'] + self.distance_modulus + self.Av*self.ext(4.66*u.micron)
-        self.f187n = self.table['F187N'] + self.distance_modulus + self.Av*self.ext(1.87*u.micron)
-        self.f182m = self.table['F182M'] + self.distance_modulus + self.Av*self.ext(1.82*u.micron)
-        self.f212n = self.table['F212N'] + self.distance_modulus + self.Av*self.ext(2.12*u.micron)
+        self.table['F405N'] = self.table['F405N'] + self.distance_modulus + self.Av*self.ext(4.05*u.micron)
+        self.table['F410M'] = self.table['F410M'] + self.distance_modulus + self.Av*self.ext(4.10*u.micron)
+        self.table['F466N'] = self.table['F466N'] + self.distance_modulus + self.Av*self.ext(4.66*u.micron)
+        self.table['F187N'] = self.table['F187N'] + self.distance_modulus + self.Av*self.ext(1.87*u.micron)
+        self.table['F182M'] = self.table['F182M'] + self.distance_modulus + self.Av*self.ext(1.82*u.micron)
+        self.table['F212N'] = self.table['F212N'] + self.distance_modulus + self.Av*self.ext(2.12*u.micron)
 
     def band(self, band):
         return self.table[band.upper()]
@@ -57,7 +57,7 @@ class Isochrone(Plotter):
     def plot_isochrone(self, ax=None, **kwargs):
         if ax is None:
             ax = plt.gca()
-        ax.scatter(self.color('f187n', 'f405n'), self.f187n, **kwargs)
+        ax.scatter(self.color('f187n', 'f405n'), self.table['F187N'], **kwargs)
         ax.set_xlabel('F187N - F405N')
         ax.set_ylabel('F187N')
         return ax
