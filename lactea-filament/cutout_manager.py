@@ -5,6 +5,27 @@ from astropy.nddata import Cutout2D
 from astropy.visualization import simple_norm
 from spectral_cube import SpectralCube
 
+hpg = False
+
+if hpg:
+    basepath_jwst = '/orange/adamginsburg/jwst/cloudc/images/'
+    basepath_glimpse = '/orange/adamginsburg/cmz/glimpse_data/'
+    fn_cont_B3 = '/orange/adamginsburg/jwst/cloudc/alma/ACES/uid___A001_X15a0_X1a8.s36_0.Sgr_A_star_sci.spw33_35.cont.I.iter1.image.tt0'
+    fn_cont_B6 = ''
+else:
+    basepath_jwst = '~/research/Research/JWST/'
+    basepath_glimpse = '~/research/Research/glimpse/'
+
+fn_405 = f'{basepath_jwst}/F405_reproj_merged-fortricolor.fits'
+fn_410 = f'{basepath_jwst}/F410_reproj_merged-fortricolor.fits'
+fn_466 = f'{basepath_jwst}/F466_reproj_merged-fortricolor.fits'
+fn_187 = f'{basepath_jwst}/F187_reproj_merged-fortricolor.fits'
+fn_182 = f'{basepath_jwst}/F182_reproj_merged-fortricolor.fits'
+fn_212 = f'{basepath_jwst}/F212_reproj_merged-fortricolor.fits'
+fn_I1 = f'{basepath_glimpse}/GLM_00000+0000_mosaic_I1.fits'
+fn_I2 = f'{basepath_glimpse}/GLM_00000+0000_mosaic_I2.fits'
+fn_I3 = f'{basepath_glimpse}/GLM_00000+0000_mosaic_I3.fits'
+fn_I4 = f'{basepath_glimpse}/GLM_00000+0000_mosaic_I4.fits'
 
 def get_cutout(filename, position, l, w, format='fits'):
     if format == 'fits':
