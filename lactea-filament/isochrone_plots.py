@@ -16,7 +16,7 @@ mist = Table.read(f'{basepath}/isochrones/MIST_iso_633a08f2d8bb1.iso.cmd',
                   header_start=12, data_start=13, format='ascii', delimiter=' ', comment='#')
 
 class Isochrone(Plotter):
-    def __init__(self, table, distance=8.5*u.kpc, age=10):
+    def __init__(self, table, age, distance=8.5*u.kpc):
         super().__init__()
         self.age_sel = table['log10_isochrone_age_yr'] == age
         self.table = table[self.age_sel]
