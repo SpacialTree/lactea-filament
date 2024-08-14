@@ -16,16 +16,18 @@ mist = Table.read(f'{basepath}/isochrones/MIST_iso_633a08f2d8bb1.iso.cmd',
                   header_start=12, data_start=13, format='ascii', delimiter=' ', comment='#')
 
 class Isochrone(Plotter):
-    def __init__(self, table, distance=8.5*u.kpc):
+    def __init__(self, table, distance=8.5*u.kpc, age=10):
         super().__init__()
-        self.table = table
-        self.logteff = table['log_Teff']
-        self.logg = table['log_g']
-        self.logL = table['log_L']
-        self.M_init = table['initial_mass']
-        self.M_actual = table['star_mass']
-        self.age = table['log10_isochrone_age_yr']
-        self.Z = table['[Fe/H]']
+        self.age_sel = table['log10_isochrone_age_yr'] == age
+        self.table = table[self.age_sel]
+        
+        self.logteff = table['log_Teff'][self.age_sel]
+        self.logg = table['log_g'][self.age_sel]
+        self.logL = table['log_L'][self.age_sel]
+        self.M_init = table['initial_mass'][self.age_sel]
+        self.M_actual = table['star_mass'][self.age_sel]
+        self.ages = table['log10_isochrone_age_yr'][self.age_sel]
+        self.Z = table['[Fe/H]'][self.age_sel]
         self.distance = distance
         self.distance_modulus = 5*np.log10(distance.to(u.pc).value) - 5
 
@@ -38,21 +40,24 @@ class Isochrone(Plotter):
                           #'m': (0.08, 0.45)
                           }
 
-        self.f405n = self.table['F405N']
-        self.f410m = self.table['F410M']
-        self.f466n = self.table['F466N']
-        self.f187n = self.table['F187N']
-        self.f182n = self.table['F182M']
-        self.f212n = self.table['F212N']
-
-    def age_selection(self, age):
-        return self.table[self.age == age]
+        self.f405n = self.table['F405N'][self.age_sel]
+        self.f410m = self.table['F410M'][self.age_sel]
+        self.f466n = self.table['F466N'][self.age_sel]
+        self.f187n = self.table['F187N'][self.age_sel]
+        self.f182m = self.table['F182M'][self.age_sel]
+        self.f212n = self.table['F212N'][self.age_sel]
 
     def band(self, band):
         return self.table[band.upper()]
 
     def color(self, band1, band2):
-        return self.band(band1) - self.band(band2)
+        return self.band(band1.upper()) - self.band(band2.upper())
 
-    
+    def plot_isochrone(self, ax=None, **kwargs):
+        if ax is None:
+            ax = plt.gca()
+        ax.scatter(self.color('f187n', 'f405n'), self.f187n+self.distance_modulus, **kwargs)
+        ax.set_xlabel('F187N - F405N')
+        ax.set_ylabel('F187N')
+        return ax
         
