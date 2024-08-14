@@ -25,6 +25,7 @@ class Isochrone(Plotter):
         self.mass_min = mass_min
         self.mass_sel = table['star_mass'] >= mass_min
         self.sel = np.logical_and(self.age_sel, self.mass_sel)
+        
         self.table = table[self.sel]
         
         self.logteff = table['log_Teff'][self.sel]
