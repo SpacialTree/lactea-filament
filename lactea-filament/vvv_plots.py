@@ -23,12 +23,6 @@ class VVVCatalog(Plotter):
         self.catalog['Hmag'] = catalog['H1ap1']
         self.catalog['Ksmag'] = catalog['Ks1ap1']
 
-        self.Zmag = self.catalog['Zmag']
-        self.Ymag = self.catalog['Ymag']
-        self.Jmag = self.catalog['Jmag']
-        self.Hmag = self.catalog['Hmag']
-        self.Ksmag = self.catalog['Ksmag']
-
     def color(self, band1, band2):
         return self.catalog[band1] - self.catalog[band2]
 
