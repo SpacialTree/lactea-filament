@@ -18,7 +18,7 @@ mist = Table.read(f'{basepath}/isochrones/MIST_iso_633a08f2d8bb1.iso.cmd',
                   header_start=12, data_start=13, format='ascii', delimiter=' ', comment='#')
 
 class Isochrone(Plotter):
-    def __init__(self, table, age, distance=8.5*u.kpc, mass_min=0.05, Av=30.0):
+    def __init__(self, table, age, distance=8.5*u.kpc, mass_min=0.05, Av=30.0, ext=CT06_MWGC()):
         super().__init__()
         self.age = age
         self.age_sel = table['log10_isochrone_age_yr'] == self.age
@@ -35,10 +35,11 @@ class Isochrone(Plotter):
         self.M_actual = table['star_mass'][self.sel]
         self.ages = table['log10_isochrone_age_yr'][self.sel]
         self.Z = table['[Fe/H]'][self.sel]
+        self.phase = table['phase'][self.sel]
 
         self.distance = distance
         self.distance_modulus = 5*np.log10(distance.to(u.pc).value) - 5
-        self.ext = CT06_MWGC()
+        self.ext = ext
         self.Av = Av
 
         self.table['F405N'] = self.table['F405N'] + self.distance_modulus + self.Av*self.ext(4.05*u.micron)
@@ -62,4 +63,11 @@ class Isochrone(Plotter):
         ax.set_ylabel('F187N')
         return ax
 
-        
+    def plot_phase(self, phase, ax=None, **kwargs):
+        if ax is None:
+            ax = plt.gca()
+        mask = self.phase == phase
+        ax.scatter(self.color('f187n', 'f405n')[mask], self.table['F187N'][mask], **kwargs)
+        ax.set_xlabel('F187N - F405N')
+        ax.set_ylabel('F187N')
+        return ax
