@@ -20,13 +20,6 @@ class JWSTCatalog(Plotter):
         self.ra = self.coords.ra
         self.dec = self.coords.dec
 
-        self.mag_ab_f405n = self.catalog['mag_ab_f405n']
-        self.mag_ab_f410m = self.catalog['mag_ab_f410m']
-        self.mag_ab_f466n = self.catalog['mag_ab_f466n']
-        self.mag_ab_f187n = self.catalog['mag_ab_f187n']
-        self.mag_ab_f182m = self.catalog['mag_ab_f182m']
-        self.mag_ab_f212n = self.catalog['mag_ab_f212n']
-
     def color(self, band1, band2):
         return self.catalog[f'mag_ab_{band1.lower()}'] - self.catalog[f'mag_ab_{band2.lower()}']
 
@@ -42,16 +35,16 @@ class JWSTCatalog(Plotter):
         return ax
 
     def get_qf_mask(self, qf=0.4):
-        mas_405 = np.logical_or(np.array(self.catalog['qfit_f405n'])<qf, np.isnan(np.array(self.mag_ab_f405n)))
-        mas_410 = np.logical_or(np.array(self.catalog['qfit_f410m'])<qf, np.isnan(np.array(self.mag_ab_f410m)))
+        mas_405 = np.logical_or(np.array(self.catalog['qfit_f405n'])<qf, np.isnan(np.array(self.catalog['mag_ab_f405n'])))
+        mas_410 = np.logical_or(np.array(self.catalog['qfit_f410m'])<qf, np.isnan(np.array(self.catalog['mag_ab_f410m'])))
         mask = np.logical_and(mas_405, mas_410)
-        mas_466 = np.logical_or(np.array(self.catalog['qfit_f466n'])<qf, np.isnan(np.array(self.mag_ab_f466n)))
+        mas_466 = np.logical_or(np.array(self.catalog['qfit_f466n'])<qf, np.isnan(np.array(self.catalog['mag_ab_f466n'])))
         mask = np.logical_and(mask, mas_466)
-        mas_187 = np.logical_or(np.array(self.catalog['qfit_f187n'])<qf, np.isnan(np.array(self.mag_ab_f187n)))
+        mas_187 = np.logical_or(np.array(self.catalog['qfit_f187n'])<qf, np.isnan(np.array(self.catalog['mag_ab_f187n'])))
         mask = np.logical_and(mask, mas_187)
-        mas_182 = np.logical_or(np.array(self.catalog['qfit_f182m'])<qf, np.isnan(np.array(self.mag_ab_f182m)))
+        mas_182 = np.logical_or(np.array(self.catalog['qfit_f182m'])<qf, np.isnan(np.array(self.catalog['mag_ab_f182m'])))
         mask = np.logical_and(mask, mas_182)
-        mas_212 = np.logical_or(np.array(self.catalog['qfit_f212n'])<qf, np.isnan(np.array(self.mag_ab_f212n)))
+        mas_212 = np.logical_or(np.array(self.catalog['qfit_f212n'])<qf, np.isnan(np.array(self.catalog['mag_ab_f212n'])))
         mask = np.logical_and(mask, mas_212)
         return mask
 
