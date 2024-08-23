@@ -42,7 +42,7 @@ def star_density_color(tbl, ww, dx=1, blur=False, plot=False):
         #plt.colorbar(im)
         return blurred
 
-def make_wcs(h_noshort, hdu):
+def make_wcs(h_noshort, header):
     wcs_dict = {
         'SIMPLE' : 'T',
         'BITPIX' : -64,
@@ -59,8 +59,8 @@ def make_wcs(h_noshort, hdu):
         'CUNIT2' : 'deg',
         'CTYPE1' : 'RA---TAN',
         'CTYPE2' : 'DEC--TAN',
-        'CRVAL1' : hdu['SCI'].header['CRVAL1'],
-        'CRVAL2' : hdu['SCI'].header['CRVAL2'],
+        'CRVAL1' : header['CRVAL1'],
+        'CRVAL2' : header['CRVAL2'],
         #'LONPOL' : 180.0,
         #'LATPOL' : 0.0,
         #'MJDREF' : 0.0,
@@ -69,7 +69,7 @@ def make_wcs(h_noshort, hdu):
     input_wcs = WCS(wcs_dict)
     return input_wcs
 
-def construct_cube(tbl, ww, hdu, dx=2, blur=True, color_couples=np.array([(b, b+1) for b in np.arange(0, 6, 1)]), plot=False):
+def construct_cube(tbl, ww, header, dx=2, blur=True, color_couples=np.array([(b, b+1) for b in np.arange(0, 6, 1)]), plot=False):
     tbl_noshort = tbl[~(np.isnan(tbl['mag_ab_f410m'])) & ~(np.isnan(tbl['mag_ab_f410m'])) & (np.isnan(tbl['mag_ab_f182m']))]
     h_noshort = star_density_color(tbl_noshort, ww, dx=dx, blur=blur)
 
@@ -78,7 +78,7 @@ def construct_cube(tbl, ww, hdu, dx=2, blur=True, color_couples=np.array([(b, b+
     cube = np.array([star_density_color(tbl_use[(color > lowmag) & (color < highmag)], ww, dx=dx, blur=blur, plot=plot) for lowmag, highmag in color_couples])
 
     cube_full = np.concatenate([cube, h_noshort.reshape((1,h_noshort.shape[0],h_noshort.shape[1]))])
-    input_wcs = make_wcs(h_noshort, hdu)
+    input_wcs = make_wcs(h_noshort, header)
     hdu_cube = fits.PrimaryHDU(data=cube_full.swapaxes(1,2), header=input_wcs.to_header())
 
     return hdu_cube
@@ -88,11 +88,14 @@ def make_cube():
     fn_405 = f'{basepath}/images/jw02221-o002_t001_nircam_clear-f405n-merged_i2d.fits'
     hdu = fits.open(fn_405)[1]
     ww = WCS(hdu.header)
+    header = hdu.header
 
     # Open catalog file
     cat_use = make_cat_use()
 
-    hdu_cube = construct_cube(cat_use.catalog, ww, hdu, dx=2, blur=True, plot=False)
+    color_couples = [(0, 0.85), (0.85, 1.45), (1.45, 2), (2, 3), (3, 4), (4, 5), (5, 6)]
+
+    hdu_cube = construct_cube(cat_use.catalog, ww, header, dx=2, blur=True, plot=False, color_couples=color_couples)
     hdu_cube.writeto(f'{basepath}/images/pseudo_extinction_cube.fits', overwrite=True)
 
 def main():
