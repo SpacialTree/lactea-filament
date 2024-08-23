@@ -66,12 +66,11 @@ def make_wcs(h_noshort, hdu):
     input_wcs = WCS(wcs_dict)
     return input_wcs
 
-def construct_cube(tbl, ww, hdu, dx=1, blur=False, plot=True):
-    tbl_noshort = tbl[(tbl['qf_f405n']>0.6) & ~(np.isnan(tbl['mag_ab_f410m'])) & (np.isnan(tbl['mag_ab_f182m'])) & 
-                      (np.isnan(tbl['mag_ab_f187n'])) & (np.isnan(tbl['mag_ab_f212n']))]
+def construct_cube(tbl, ww, hdu, dx=1, blur=False, color_couples=np.array([(b, b+1) for b in np.arange(0, 6, 1)])):
+    tbl_noshort = tbl[~(np.isnan(tbl['mag_ab_f410m'])) & ~(np.isnan(tbl['mag_ab_f410m'])) & (np.isnan(tbl['mag_ab_f182m']))]
     h_noshort = star_density_color(tbl_noshort, ww, dx=dx, blur=blur)
     
-    tbl_use = tbl[(tbl['qf_f405n']>0.6) & ~(np.isnan(tbl['mag_ab_f410m'])) & ~(np.isnan(tbl['mag_ab_f182m']))]
+    tbl_use = tbl[~(np.isnan(tbl['mag_ab_f410m'])) & ~(np.isnan(tbl['mag_ab_f410m'])) & ~(np.isnan(tbl['mag_ab_f182m']))]
     cube = np.array([star_density_color(tbl_use[(color > lowmag) & (color < highmag)], ww, dx=dx, blur=blur) for lowmag, highmag in color_couples])
 
     cube_full = np.concatenate([cube, h_noshort.reshape((1,h_noshort.shape[0],h_noshort.shape[1]))])
