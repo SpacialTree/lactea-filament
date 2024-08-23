@@ -89,5 +89,5 @@ def make_cube():
     # Open catalog file
     cat_use = make_cat_use()
 
-    hdu_cube = make_cube(tbl, ww, hdu, dx=1, blur=False, plot=True)
+    hdu_cube = make_cube(tbl, ww, hdu, dx=2, blur=True, plot=False)
     hdu_cube.writeto(f'{basepath}/images/pseudo_extinction_cube.fits', overwrite=True)
