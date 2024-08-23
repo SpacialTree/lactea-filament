@@ -8,7 +8,6 @@ from astropy.io import fits
 from jwst_plots import make_cat_use
 
 def star_density_color(tbl, ww, dx=1, blur=False, plot=True):
-    pos_smudge = SkyCoord('17:46:23.6171497910', '-28:36:43.0690114397', unit=(u.hourangle, u.deg), frame='icrs')
     size = (2.55*u.arcmin, 8.4*u.arcmin) # approx size of field
     bins_ra = np.arange(0, size[1].to(u.arcsec).value, dx)
     bins_dec = np.arange(0, size[0].to(u.arcsec).value, dx)
