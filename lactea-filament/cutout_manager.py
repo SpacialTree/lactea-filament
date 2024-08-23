@@ -7,7 +7,7 @@ from spectral_cube import SpectralCube
 import regions
 from regions import Regions
 
-hpg = False
+hpg = True
 
 if hpg:
     basepath_jwst = '/orange/adamginsburg/jwst/cloudc/images/'
