@@ -7,7 +7,9 @@ from astropy.io import fits
 
 from jwst_plots import make_cat_use
 
-def star_density_color(tbl, ww, dx=1, blur=False, plot=True):
+basepath = '/orange/adamginsburg/jwst/cloudc/'
+
+def star_density_color(tbl, ww, dx=1, blur=False, plot=False):
     size = (2.55*u.arcmin, 8.4*u.arcmin) # approx size of field
     bins_ra = np.arange(0, size[1].to(u.arcsec).value, dx)
     bins_dec = np.arange(0, size[0].to(u.arcsec).value, dx)
@@ -66,12 +68,12 @@ def make_wcs(h_noshort, hdu):
     input_wcs = WCS(wcs_dict)
     return input_wcs
 
-def construct_cube(tbl, ww, hdu, dx=2, blur=True, color_couples=np.array([(b, b+1) for b in np.arange(0, 6, 1)])):
+def construct_cube(tbl, ww, hdu, dx=2, blur=True, color_couples=np.array([(b, b+1) for b in np.arange(0, 6, 1)]), plot=False):
     tbl_noshort = tbl[~(np.isnan(tbl['mag_ab_f410m'])) & ~(np.isnan(tbl['mag_ab_f410m'])) & (np.isnan(tbl['mag_ab_f182m']))]
     h_noshort = star_density_color(tbl_noshort, ww, dx=dx, blur=blur)
     
     tbl_use = tbl[~(np.isnan(tbl['mag_ab_f410m'])) & ~(np.isnan(tbl['mag_ab_f410m'])) & ~(np.isnan(tbl['mag_ab_f182m']))]
-    cube = np.array([star_density_color(tbl_use[(color > lowmag) & (color < highmag)], ww, dx=dx, blur=blur) for lowmag, highmag in color_couples])
+    cube = np.array([star_density_color(tbl_use[(color > lowmag) & (color < highmag)], ww, dx=dx, blur=blur, plot=plot) for lowmag, highmag in color_couples])
 
     cube_full = np.concatenate([cube, h_noshort.reshape((1,h_noshort.shape[0],h_noshort.shape[1]))])
     input_wcs = make_wcs(h_noshort, hdu)
@@ -82,17 +84,16 @@ def construct_cube(tbl, ww, hdu, dx=2, blur=True, color_couples=np.array([(b, b+
 def make_cube():
     # Open file for WCS information
     fn_405 = f'{basepath}/images/jw02221-o002_t001_nircam_clear-f405n-merged_i2d.fits'
-    hdu = fits.open(fn)[1]
+    hdu = fits.open(fn_405)[1]
     ww = WCS(hdu.header)
 
     # Open catalog file
     cat_use = make_cat_use()
 
-    hdu_cube = make_cube(tbl, ww, hdu, dx=2, blur=True, plot=False)
+    hdu_cube = construct_cube(cat_use, ww, hdu, dx=2, blur=True, plot=False)
     hdu_cube.writeto(f'{basepath}/images/pseudo_extinction_cube.fits', overwrite=True)
 
 def main():
     make_cube()
 
-if __init__ == '__main__':
-    main()
+main()
