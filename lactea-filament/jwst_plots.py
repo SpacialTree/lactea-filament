@@ -11,6 +11,8 @@ from cmd_plot import Plotter
 import regions
 from regions import Regions
 
+basepath = '/orange/adamginsburg/jwst/cloudc/'
+
 class JWSTCatalog(Plotter):
     def __init__(self, catalog):
         super().__init__()
@@ -65,3 +67,22 @@ class JWSTCatalog(Plotter):
     def table_region_mask(self, reg, wcs):
         mask = self.get_region_mask(reg, wcs)
         return self.catalog[mask]
+
+def make_cat_use():
+    # Open file for WCS information
+    fn_405 = f'{basepath}/images/F405_reproj_merged-fortricolor.fits'
+    ww = WCS(fits.open(fn_405)[0].header)
+
+    # Open catalog file
+    cat_fn = f'{basepath}/catalogs/basic_merged_indivexp_photometry_tables_merged.fits'
+    basetable = Table.read(cat_fn)
+
+    # Create JWSTCatalog object
+    base_jwstcatalog = JWSTCatalog(basetable)
+
+    # Mask for quality factor
+    mask_qf = base_jwstcatalog.get_qf_mask(0.4)
+
+    # Return catalog with quality factor mask
+    cat_use = JWSTCatalog(basetable[mask_qf])
+    return cat_use
