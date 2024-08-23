@@ -69,10 +69,6 @@ class JWSTCatalog(Plotter):
         return self.catalog[mask]
 
 def make_cat_use():
-    # Open file for WCS information
-    fn_405 = f'{basepath}/images/F405_reproj_merged-fortricolor.fits'
-    ww = WCS(fits.open(fn_405)[0].header)
-
     # Open catalog file
     cat_fn = f'{basepath}/catalogs/basic_merged_indivexp_photometry_tables_merged.fits'
     basetable = Table.read(cat_fn)
