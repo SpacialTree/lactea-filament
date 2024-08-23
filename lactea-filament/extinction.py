@@ -82,8 +82,8 @@ def construct_cube(tbl, ww, hdu, dx=2, blur=True, color_couples=np.array([(b, b+
 def make_cube():
     # Open file for WCS information
     fn_405 = f'{basepath}/images/jw02221-o002_t001_nircam_clear-f405n-merged_i2d.fits'
-    hdu = fits.open(fn_405)
-    ww = WCS(fits.open(fn_405)[0].header)
+    hdu = fits.open(fn)[1]
+    ww = WCS(hdu.header)
 
     # Open catalog file
     cat_use = make_cat_use()
