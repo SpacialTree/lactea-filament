@@ -4,6 +4,7 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astropy.wcs import WCS
 from astropy.io import fits
+from scipy.ndimage import gaussian_filter
 
 from jwst_plots import make_cat_use
 
@@ -71,6 +72,8 @@ def make_wcs(h_noshort, hdu):
 def construct_cube(tbl, ww, hdu, dx=2, blur=True, color_couples=np.array([(b, b+1) for b in np.arange(0, 6, 1)]), plot=False):
     tbl_noshort = tbl[~(np.isnan(tbl['mag_ab_f410m'])) & ~(np.isnan(tbl['mag_ab_f410m'])) & (np.isnan(tbl['mag_ab_f182m']))]
     h_noshort = star_density_color(tbl_noshort, ww, dx=dx, blur=blur)
+
+    color = tbl['mag_ab_f182m'] - tbl['mag_ab_f410m']
     
     tbl_use = tbl[~(np.isnan(tbl['mag_ab_f410m'])) & ~(np.isnan(tbl['mag_ab_f410m'])) & ~(np.isnan(tbl['mag_ab_f182m']))]
     cube = np.array([star_density_color(tbl_use[(color > lowmag) & (color < highmag)], ww, dx=dx, blur=blur, plot=plot) for lowmag, highmag in color_couples])
@@ -90,7 +93,7 @@ def make_cube():
     # Open catalog file
     cat_use = make_cat_use()
 
-    hdu_cube = construct_cube(cat_use, ww, hdu, dx=2, blur=True, plot=False)
+    hdu_cube = construct_cube(cat_use.catalog, ww, hdu, dx=2, blur=True, plot=False)
     hdu_cube.writeto(f'{basepath}/images/pseudo_extinction_cube.fits', overwrite=True)
 
 def main():
