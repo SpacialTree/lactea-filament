@@ -66,7 +66,7 @@ def make_wcs(h_noshort, hdu):
     input_wcs = WCS(wcs_dict)
     return input_wcs
 
-def construct_cube(tbl, ww, hdu, dx=1, blur=False, color_couples=np.array([(b, b+1) for b in np.arange(0, 6, 1)])):
+def construct_cube(tbl, ww, hdu, dx=2, blur=True, color_couples=np.array([(b, b+1) for b in np.arange(0, 6, 1)])):
     tbl_noshort = tbl[~(np.isnan(tbl['mag_ab_f410m'])) & ~(np.isnan(tbl['mag_ab_f410m'])) & (np.isnan(tbl['mag_ab_f182m']))]
     h_noshort = star_density_color(tbl_noshort, ww, dx=dx, blur=blur)
     
@@ -81,7 +81,7 @@ def construct_cube(tbl, ww, hdu, dx=1, blur=False, color_couples=np.array([(b, b
 
 def make_cube():
     # Open file for WCS information
-    fn_405 = f'{basepath}/images/F405_reproj_merged-fortricolor.fits'
+    fn_405 = f'{basepath}/images/jw02221-o002_t001_nircam_clear-f405n-merged_i2d.fits'
     hdu = fits.open(fn_405)
     ww = WCS(fits.open(fn_405)[0].header)
 
