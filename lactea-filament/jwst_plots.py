@@ -94,5 +94,5 @@ def make_cat_use():
     mask_qf = base_jwstcatalog.get_qf_mask(0.4)
 
     # Return catalog with quality factor mask
-    cat_use = JWSTCatalog(basetable[mask])
+    cat_use = JWSTCatalog(basetable[mask_qf])
     return cat_use
