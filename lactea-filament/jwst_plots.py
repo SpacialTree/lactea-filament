@@ -93,6 +93,12 @@ def make_cat_use():
     # Mask for quality factor
     mask_qf = base_jwstcatalog.get_qf_mask(0.4)
 
+    # Mask for count
+    mask_count = base_jwstcatalog.get_count_mask()
+
+    # Combine Masks
+    mask = np.logical_and(mask_qf, mask_count)
+
     # Return catalog with quality factor mask
-    cat_use = JWSTCatalog(basetable[mask_qf])
+    cat_use = JWSTCatalog(basetable[mask])
     return cat_use
