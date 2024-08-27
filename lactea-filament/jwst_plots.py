@@ -49,7 +49,7 @@ class JWSTCatalog(Plotter):
         mas_212 = np.logical_or(np.array(self.catalog['qfit_f212n'])<qf, np.isnan(np.array(self.catalog['mag_ab_f212n'])))
         mask = np.logical_and(mask, mas_212)
         return mask
-
+    
     def table_qf_mask(self):
         mask = self.get_qf_mask()
         return self.catalog[mask]
@@ -68,6 +68,20 @@ class JWSTCatalog(Plotter):
         mask = self.get_region_mask(reg, wcs)
         return self.catalog[mask]
 
+    def get_multi_detection_mask(self):
+        # Mask for detection in more than one filter
+        mask_405_410 = np.logical_and(~np.isnan(basetable['mag_ab_f405n']), ~np.isnan(basetable['mag_ab_f410m']))
+        mask_no_405_410 = np.logical_and(np.isnan(basetable['mag_ab_f405n']), np.isnan(basetable['mag_ab_f410m']))
+        mask_405_410 = np.logical_or(mask_405_410, mask_no_405_410)
+
+        mask_187_182 = np.logical_and(~np.isnan(basetable['mag_ab_f187n']), ~np.isnan(basetable['mag_ab_f182m']))
+        mask_no_187_182 = np.logical_and(np.isnan(basetable['mag_ab_f187n']), np.isnan(basetable['mag_ab_f182m']))
+        mask_187_182 = np.logical_or(mask_187_182, mask_no_187_182)
+
+        mask_firm_detection = np.logical_and(mask_405_410, mask_187_182)
+        return mask_firm_detection
+
+
 def make_cat_use():
     # Open catalog file
     cat_fn = f'{basepath}/catalogs/basic_merged_indivexp_photometry_tables_merged.fits'
@@ -78,19 +92,6 @@ def make_cat_use():
 
     # Mask for quality factor
     mask_qf = base_jwstcatalog.get_qf_mask(0.4)
-
-    # Mask for detection in more than one filter
-    mask_405_410 = np.logical_and(~np.isnan(basetable['mag_ab_f405n']), ~np.isnan(basetable['mag_ab_f410m']))
-    mask_no_405_410 = np.logical_and(np.isnan(basetable['mag_ab_f405n']), np.isnan(basetable['mag_ab_f410m']))
-    mask_405_410 = np.logical_or(mask_405_410, mask_no_405_410)
-
-    mask_187_182 = np.logical_and(~np.isnan(basetable['mag_ab_f187n']), ~np.isnan(basetable['mag_ab_f182m']))
-    mask_no_187_182 = np.logical_and(np.isnan(basetable['mag_ab_f187n']), np.isnan(basetable['mag_ab_f182m']))
-    mask_187_182 = np.logical_or(mask_187_182, mask_no_187_182)
-
-    mask_firm_detection = np.logical_and(mask_405_410, mask_187_182)
-
-    mask = np.logical_and(mask_qf, mask_firm_detection)
 
     # Return catalog with quality factor mask
     cat_use = JWSTCatalog(basetable[mask])
