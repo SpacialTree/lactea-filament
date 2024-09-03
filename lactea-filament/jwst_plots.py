@@ -69,6 +69,9 @@ class JWSTCatalog(Plotter):
         mask = self.get_region_mask(reg, wcs)
         return self.catalog[mask]
 
+    def apply_mask(self, mask):
+        return self.catalog[mask]
+
     def get_multi_detection_mask(self):
         # Mask for detection in more than one filter
         mask_405_410 = np.logical_and(~np.isnan(basetable['mag_ab_f405n']), ~np.isnan(basetable['mag_ab_f410m']))
