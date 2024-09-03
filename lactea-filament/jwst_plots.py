@@ -10,6 +10,7 @@ from astropy.table import Table
 from cmd_plot import Plotter
 import regions
 from regions import Regions
+from astroquery.svo_fps import SvoFps
 
 basepath = '/orange/adamginsburg/jwst/cloudc/'
 
@@ -102,3 +103,9 @@ def make_cat_use():
     # Return catalog with quality factor mask
     cat_use = JWSTCatalog(basetable[mask])
     return cat_use
+
+def make_cat_raw():
+    cat_fn = f'{basepath}/catalogs/basic_merged_indivexp_photometry_tables_merged.fits'
+    basetable = Table.read(cat_fn)
+    base_jwstcatalog = JWSTCatalog(basetable)
+    return base_jwstcatalog
