@@ -13,18 +13,21 @@ from cmd_plot import Plotter
 from dust_extinction.averages import RRP89_MWGC, CT06_MWGC, F11_MWGC
 from dust_extinction.parameter_averages import CCM89
 
-basepath = '/home/savannahgramze/research/Research/JWST/cloudc/'
+basepath = '/orange/adamginsburg/jwst/brick/'
+#'/home/savannahgramze/research/Research/JWST/cloudc/'
 mist = Table.read(f'{basepath}/isochrones/MIST_iso_633a08f2d8bb1.iso.cmd', 
                   header_start=12, data_start=13, format='ascii', delimiter=' ', comment='#')
 
 class Isochrone(Plotter):
-    def __init__(self, table, age, distance=8.5*u.kpc, mass_min=0.05, Av=30.0, ext=CT06_MWGC()):
+    def __init__(self, table, age, distance=8.5*u.kpc, mass_min=0.05, Av=30.0, ext=CT06_MWGC(), phase=None):
         super().__init__()
         self.age = age
         self.age_sel = table['log10_isochrone_age_yr'] == self.age
         self.mass_min = mass_min
         self.mass_sel = table['star_mass'] >= mass_min
         self.sel = np.logical_and(self.age_sel, self.mass_sel)
+        if phase is not None:
+            self.sel = np.logical_and(self.sel, table['phase'] == phase)
 
         self.table = table[self.sel]
         
@@ -71,3 +74,8 @@ class Isochrone(Plotter):
         ax.set_xlabel('F187N - F405N')
         ax.set_ylabel('F187N')
         return ax
+
+def get_mist_isochrone(distance=8*u.kpc, age=10, Av=30, ext=RRP89_MWGC()):
+    mist = Table.read(f'{basepath}/isochrones/MIST_iso_633a08f2d8bb1.iso.cmd', 
+                      header_start=12, data_start=13, format='ascii', delimiter=' ', comment='#')
+    return Isochrone(mist, age, distance=distance, Av=Av)
