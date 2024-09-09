@@ -11,6 +11,7 @@ from cmd_plot import Plotter
 import regions
 from regions import Regions
 from astroquery.svo_fps import SvoFps
+from dust_extinction.averages import CT06_MWGC
 
 basepath = '/orange/adamginsburg/jwst/cloudc/'
 
@@ -23,11 +24,17 @@ class JWSTCatalog(Plotter):
         self.ra = self.coords.ra
         self.dec = self.coords.dec
 
+    def band(self, band):
+        return self.catalog[f'mag_ab_{band.lower()}']
+
     def color(self, band1, band2):
         return self.catalog[f'mag_ab_{band1.lower()}'] - self.catalog[f'mag_ab_{band2.lower()}']
 
-    def band(self, band):
-        return self.catalog[f'mag_ab_{band.lower()}']
+    def flux(self, band):
+        return self.catalog[f'flux_jy_{band.lower()}']
+
+    def eflux(self, band):
+        return self.catalog[f'eflux_jy_{band.lower()}']
 
     def plot_position(self, ax=None, **kwargs):
         if ax is None:
@@ -36,6 +43,24 @@ class JWSTCatalog(Plotter):
         ax.set_xlabel('Right Ascension')
         ax.set_ylabel('Declination')
         return ax
+
+    def plot_band_histogram(self, band, min=None, max=None, num=50, ax=None, **kwargs):
+        if ax is None:
+            ax = plt.gca()
+        if min is None:
+            min = np.min(self.band(band))
+        if max is None:
+            max = np.max(self.band(band))
+        h, bins = np.histogram(self.band(band), range=(min, max), bins=num)
+        ax.step(bins[:-1], h, where='mid', **kwargs)
+        #ax.hist(self.band(band), **kwargs)
+        ax.set_xlabel(f'{band.upper()} Magnitude')
+        ax.set_ylabel('Star Count')
+        return ax
+
+    def get_Av_182410(self, ext=CT06_MWGC()):
+        av182410 = (self.color('f182m', 'f410m')) / (ext(1.82*u.um) - ext(4.10*u.um))
+        return av182410
 
     def get_qf_mask(self, qf=0.4):
         mas_405 = np.logical_or(np.array(self.catalog['qfit_f405n'])<qf, np.isnan(np.array(self.catalog['mag_ab_f405n'])))
