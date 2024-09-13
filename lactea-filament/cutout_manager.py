@@ -145,6 +145,27 @@ def get_cutout_glimpse_rgb(position, l, w):
 
     return rgb_scaled.swapaxes(0,1), cutout_I1.wcs
 
+def get_cutout_glimpse_rgb_alt(position, l, w):
+    cutout_I1 = get_cutout_I1(position, l, w)
+    cutout_I2 = get_cutout_I2(position, l, w)
+    cutout_I4 = get_cutout_I4(position, l, w)
+
+    rgb = np.array(
+        [
+            cutout_I4.data, # R
+            cutout_I2.data, # G 
+            cutout_I1.data, # B
+        ].swapaxes(0,2).swapaxes(0,1)
+    )
+
+    rgb_scaled = np.array([
+        simple_norm(rgb[:,:,0], stretch='asinh', vmin=-1, vmax=350)(rgb[:,:,0]),
+        simple_norm(rgb[:,:,1], stretch='asinh', vmin=-1, vmax=200)(rgb[:,:,1]),
+        simple_norm(rgb[:,:,2], stretch='asinh', vmin=-1, vmax=100)(rgb[:,:,2]),
+    ]).swapaxes(0,2)
+
+    return rgb_scaled.swapaxes(0,1), cutout_I1.wcs
+
 def get_alma_B3(position, l, w):
     B3_cont_fn = '/orange/adamginsburg/jwst/cloudc/alma/ACES/uid___A001_X15a0_X1a8.s36_0.Sgr_A_star_sci.spw33_35.cont.I.iter1.image.tt0'
     cutout_alma = get_cutout(B3_cont_fn, position, l, w, format='casa')
