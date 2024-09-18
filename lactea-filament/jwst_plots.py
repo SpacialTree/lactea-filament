@@ -80,6 +80,13 @@ class JWSTCatalog(Plotter):
         mask = self.get_qf_mask()
         return self.catalog[mask]
 
+    def get_brights_mask(self):
+        mask_187 = np.logical_and(self.catalog['mag_ab_f187n'] < 15, self.color('F187N', 'F182M') < -0.3)
+        mask = np.logical_or(~mask_187, np.isnan(np.array(self.catalog['mag_ab_f187n'])))
+        mask_405 = np.logical_and(self.catalog['mag_ab_f405n'] < 13.5, self.color('F405N', 'F410M') < -0.3)
+        mask &= np.logical_or(~mask_405, np.isnan(np.array(self.catalog['mag_ab_f405n'])))
+        return mask
+
     def get_count_mask(self):
         mask = np.array([self.catalog[colname] < 0.1 for colname in self.catalog.colnames if colname.startswith('emag')])
         mask = mask.max(axis=0)
@@ -125,8 +132,12 @@ def make_cat_use():
     # Mask for count
     mask_count = base_jwstcatalog.get_count_mask()
 
+    # Mask for bad bright stars
+    mask_brights = base_jwstcatalog.get_brights_mask()
+
     # Combine Masks
     mask = np.logical_and(mask_qf, mask_count)
+    mask = np.logical_and(mask, mask_brights)
 
     # Return catalog with quality factor mask
     cat_use = JWSTCatalog(basetable[mask])
