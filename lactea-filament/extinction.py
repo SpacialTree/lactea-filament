@@ -10,8 +10,7 @@ from jwst_plots import make_cat_use
 
 basepath = '/orange/adamginsburg/jwst/cloudc/'
 
-def star_density_color(tbl, ww, dx=1, blur=False, plot=False):
-    size = (2.55*u.arcmin, 8.4*u.arcmin) # approx size of field
+def star_density_color(tbl, ww, dx=1, blur=False, plot=False, size=(2.55*u.arcmin, 8.4*u.arcmin)):
     bins_ra = np.arange(0, size[1].to(u.arcsec).value, dx)
     bins_dec = np.arange(0, size[0].to(u.arcsec).value, dx)
 
@@ -42,7 +41,7 @@ def star_density_color(tbl, ww, dx=1, blur=False, plot=False):
         #plt.colorbar(im)
         return blurred
 
-def make_wcs(h_noshort, header):
+def make_wcs(h_noshort, dx, header):
     wcs_dict = {
         'SIMPLE' : 'T',
         'BITPIX' : -64,
@@ -52,8 +51,8 @@ def make_wcs(h_noshort, header):
         'WCSAXES' : 2,
         'CRPIX1' : h_noshort.shape[0]/2,
         'CRPIX2' : h_noshort.shape[1]/2,
-        'CDELT1' : -(2*u.arcsec).to(u.deg).value,
-        'CDELT2' : (2*u.arcsec).to(u.deg).value,
+        'CDELT1' : -(dx*u.arcsec).to(u.deg).value,
+        'CDELT2' : (dx*u.arcsec).to(u.deg).value,
         'CROTA2' : 354.6-270,
         'CUNIT1' : 'deg',
         'CUNIT2' : 'deg',
@@ -78,7 +77,7 @@ def construct_cube(tbl, ww, header, dx=2, blur=True, color_couples=np.array([(b,
     cube = np.array([star_density_color(tbl_use[(color > lowmag) & (color < highmag)], ww, dx=dx, blur=blur, plot=plot) for lowmag, highmag in color_couples])
 
     cube_full = np.concatenate([cube, h_noshort.reshape((1,h_noshort.shape[0],h_noshort.shape[1]))])
-    input_wcs = make_wcs(h_noshort, header)
+    input_wcs = make_wcs(h_noshort, dx, header)
     hdu_cube = fits.PrimaryHDU(data=cube_full.swapaxes(1,2), header=input_wcs.to_header())
 
     return hdu_cube
