@@ -106,16 +106,23 @@ class JWSTCatalog(Plotter):
 
     def get_multi_detection_mask(self):
         # Mask for detection in more than one filter
-        mask_405_410 = np.logical_and(~np.isnan(basetable['mag_ab_f405n']), ~np.isnan(basetable['mag_ab_f410m']))
-        mask_no_405_410 = np.logical_and(np.isnan(basetable['mag_ab_f405n']), np.isnan(basetable['mag_ab_f410m']))
-        mask_405_410 = np.logical_or(mask_405_410, mask_no_405_410)
+        #mask_405_410 = np.logical_and(~np.isnan(basetable['mag_ab_f405n']), ~np.isnan(basetable['mag_ab_f410m']))
+        #mask_no_405_410 = np.logical_and(np.isnan(basetable['mag_ab_f405n']), np.isnan(basetable['mag_ab_f410m']))
+        #mask_405_410 = np.logical_or(mask_405_410, mask_no_405_410)
+#
+        #mask_187_182 = np.logical_and(~np.isnan(basetable['mag_ab_f187n']), ~np.isnan(basetable['mag_ab_f182m']))
+        #mask_no_187_182 = np.logical_and(np.isnan(basetable['mag_ab_f187n']), np.isnan(basetable['mag_ab_f182m']))
+        #mask_187_182 = np.logical_or(mask_187_182, mask_no_187_182)
+#
+        #mask_firm_detection = np.logical_and(mask_405_410, mask_187_182)
+        #return mask_firm_detection
 
-        mask_187_182 = np.logical_and(~np.isnan(basetable['mag_ab_f187n']), ~np.isnan(basetable['mag_ab_f182m']))
-        mask_no_187_182 = np.logical_and(np.isnan(basetable['mag_ab_f187n']), np.isnan(basetable['mag_ab_f182m']))
-        mask_187_182 = np.logical_or(mask_187_182, mask_no_187_182)
+        # Mask for detection in more than one filter
+        combine_mask = np.zeros(len(self.catalog), dtype=int)
+        for band in ['f405n', 'f410m', 'f466n', 'f182m', 'f187n', 'f212n']:
+            combine_mask += ~np.isnan(self.catalog[f'mag_ab_{band}'])
 
-        mask_firm_detection = np.logical_and(mask_405_410, mask_187_182)
-        return mask_firm_detection
+        return combine_mask > 1
 
 
 def make_cat_use():
@@ -135,9 +142,13 @@ def make_cat_use():
     # Mask for bad bright stars
     mask_brights = base_jwstcatalog.get_brights_mask()
 
+    # Mask for detections in more than one band
+    mask_multi = base_jwstcatalog.get_multi_detection_mask()
+
     # Combine Masks
     mask = np.logical_and(mask_qf, mask_count)
     mask = np.logical_and(mask, mask_brights)
+    mask = np.logical_and(mask, mask_multi)
 
     # Return catalog with quality factor mask
     cat_use = JWSTCatalog(basetable[mask])
