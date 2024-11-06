@@ -93,8 +93,8 @@ def get_cutout_rgb(position, l, w):
 
 def get_cutout_rgb3(position, l, w):
     cutout_R = get_cutout_410(position, l, w)
-    cutout_B = get_cutout_212(position, l, w)
-    cutout_G = get_cutout_182(position, l, w)
+    cutout_G = get_cutout_212(position, l, w)
+    cutout_B = get_cutout_182(position, l, w)
 
     rgb = np.array(
         [
