@@ -111,6 +111,47 @@ def get_cutout_rgb3(position, l, w):
 
     return rgb_scaled.swapaxes(0,1), cutout_R.wcs
 
+def get_cutout_rgb_sw(position, l, w):
+    cutout_R = get_cutout_212(position, l, w)
+    cutout_G = get_cutout_187(position, l, w)
+    cutout_B = get_cutout_182(position, l, w)
+
+    rgb = np.array(
+        [
+            cutout_R.data,
+            cutout_G.data,
+            cutout_B.data
+        ]
+    ).swapaxes(0,2).swapaxes(0,1)
+    rgb_scaled = np.array([
+        simple_norm(rgb[:,:,0], stretch='asinh', vmin=-1, vmax=90)(rgb[:,:,0]),
+        simple_norm(rgb[:,:,1], stretch='asinh', vmin=-2, vmax=100)(rgb[:,:,1]),
+        simple_norm(rgb[:,:,2], stretch='asinh', vmin=-1, vmax=120)(rgb[:,:,2]),
+    ]).swapaxes(0,2)
+
+    return rgb_scaled.swapaxes(0,1), cutout_R.wcs
+
+def get_cutout_rgb_lw(position, l, w):
+    cutout_R = get_cutout_466(position, l, w)
+    cutout_G = get_cutout_405(position, l, w)
+    cutout_B = get_cutout_410(position, l, w)
+
+    rgb = np.array(
+        [
+            cutout_R.data,
+            cutout_G.data,
+            cutout_B.data
+        ]
+    ).swapaxes(0,2).swapaxes(0,1)
+    rgb_scaled = np.array([
+        simple_norm(rgb[:,:,0], stretch='asinh', vmin=-1, vmax=90)(rgb[:,:,0]),
+        simple_norm(rgb[:,:,1], stretch='asinh', vmin=-2, vmax=100)(rgb[:,:,1]),
+        simple_norm(rgb[:,:,2], stretch='asinh', vmin=-1, vmax=120)(rgb[:,:,2]),
+    ]).swapaxes(0,2)
+
+    return rgb_scaled.swapaxes(0,1), cutout_R.wcs
+
+
 def get_cutout_I1(position, l, w):
     return get_cutout(fn_I1, position, l, w)
 
