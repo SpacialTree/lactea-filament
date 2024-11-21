@@ -164,3 +164,4 @@ def get_mass_estimate(ext_map, ww, dist=5*u.kpc, factor=2*10**21*u.cm**-2, mpp=2
     grid_N = np.nansum(ext_map) * factor
     pixel_area_physical = (ww.proj_plane_pixel_scales()[0] * dist).to(u.cm, u.dimensionless_angles())**2
     return (grid_N * pixel_area_physical * mpp).to(u.Msun)
+
