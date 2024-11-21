@@ -136,7 +136,7 @@ def make_stellar_density_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWGC(),
 
 def make_extinction_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWGC(), 
                         pos=SkyCoord('17:46:20.6290029866', '-28:37:49.5114204513', unit=(u.hour, u.deg)),
-                        l=113.8*u.arcsec, w=3.3*u.arcmin, fwhm=30, k=5):
+                        l=113.8*u.arcsec, w=3.3*u.arcmin, fwhm=30, k=5, Av_fill=90):
 
     mask = (cat_filament.color('f182m', 'f410m') > color_cut)
     mask = np.logical_or(mask, np.isnan(cat_filament.band('f182m')) & ~np.isnan(cat_filament.band('f410m')))
@@ -152,10 +152,15 @@ def make_extinction_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWGC(),
 
     Av = np.array(cat_use_red.get_Av_182410(ext=ext))
     too_red = np.isnan(np.array(cat_use_red.band('f182m'))) & ~np.isnan(np.array(cat_use_red.band('f410m')))
-    Av[too_red] = 90
+    Av[too_red] = Av_fill
 
     grid = fill_grid(grid, data, Av)
 
     grid = interpolate_grid(grid, fwhm)
 
     return grid
+
+def get_mass_estimate(ext_map, ww, dist=5*u.kpc, factor=2*10**21*u.cm**-2, mpp=2.8*u.u):
+    grid_N = np.nansum(ext_map) * factor
+    pixel_area_physical = (ww.proj_plane_pixel_scales()[0] * dist).to(u.cm, u.dimensionless_angles())**2
+    return (grid_N * pixel_area_physical * mpp).to(u.Msun)
