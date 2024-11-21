@@ -66,6 +66,12 @@ def interpolate_grid(grid, fwhm):
     grid = convolve_fft(grid, kernel, nan_treatment='interpolate')
     return grid
 
+def get_wcs(pos=SkyCoord('17:46:20.6290029866', '-28:37:49.5114204513', unit=(u.hour, u.deg)), 
+            l=113.8*u.arcsec, w=3.3*u.arcmin):
+    reg = regions.RectangleSkyRegion(pos, width=l, height=w)
+    cutout_405 = cm.get_cutout_405(pos, w, l)
+    return cutout_405.wcs
+
 def make_stellar_separation_map_interp(cat=cat_filament, color_cut=2.0, ext=CT06_MWGC(),
                                        pos=SkyCoord('17:46:20.6290029866', '-28:37:49.5114204513', unit=(u.hour, u.deg)), 
                                        l=113.8*u.arcsec, w=3.3*u.arcmin, fwhm=30, k=5):
