@@ -1,103 +1,155 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import astropy.units as u
-from astropy.coordinates import SkyCoord
-from astropy.wcs import WCS
 from astropy.io import fits
-from scipy.ndimage import gaussian_filter
+import astropy.units as u
+from astropy.wcs import WCS
+from astropy.coordinates import SkyCoord
+from astropy.table import Table
+import regions
+from regions import Regions
+from astropy.coordinates import search_around_sky
+from dust_extinction.averages import CT06_MWGC, I05_MWAvg, G21_MWAvg, CT06_MWLoc, RL85_MWGC, RRP89_MWGC, F11_MWGC
+from scipy.spatial import KDTree
+from astropy.convolution import interpolate_replace_nans, Gaussian2DKernel
+from astropy.convolution import convolve, convolve_fft
+from astropy.nddata import Cutout2D
+from astropy.visualization import simple_norm
 
 from jwst_plots import make_cat_use
+from jwst_plots import JWSTCatalog
+import cutout_manager as cm
 
 basepath = '/orange/adamginsburg/jwst/cloudc/'
 
-def star_density_color(tbl, ww, dx=1, blur=False, plot=False, size=(2.55*u.arcmin, 8.4*u.arcmin)):
-    bins_ra = np.arange(0, size[1].to(u.arcsec).value, dx)
-    bins_dec = np.arange(0, size[0].to(u.arcsec).value, dx)
+pos = SkyCoord('17:46:20.6290029866', '-28:37:49.5114204513', unit=(u.hour, u.deg))
+l = 113.8*u.arcsec
+w = 3.3*u.arcmin
+reg = regions.RectangleSkyRegion(pos, width=l, height=w)
 
-    bins_pix_ra = bins_ra/ww.proj_plane_pixel_scales()[1].to(u.arcsec).value
-    bins_pix_dec= bins_dec/ww.proj_plane_pixel_scales()[1].to(u.arcsec).value
+cutout_405 = cm.get_cutout_405(pos, w, l)
+ww = cutout_405.wcs
+data_405 = cutout_405.data
+pixel_scale = ww.proj_plane_pixel_scales()[0] * u.deg.to(u.arcsec)
 
-    crds_pix = np.array(ww.world_to_pixel(tbl['skycoord_ref']))
+cat_use = make_cat_use()
+cat_filament = JWSTCatalog(cat_use.table_region_mask([reg], ww))
+pixcoords = ww.all_world2pix(cat_filament.coords.ra, cat_filament.coords.dec, 0)
+data = np.array(pixcoords).T
 
-    if plot:
-        plt.figure(figsize=(18, 6))
-        ax = plt.subplot(111, projection=ww)
-        ax.set_xlabel('RA')
-        ax.set_ylabel('Dec')
-    h, xedges, yedges = np.histogram2d(crds_pix[0], crds_pix[1], bins=[bins_pix_ra, bins_pix_dec])
-    if not blur:
-        if plot:
-            h1 = ax.imshow(h.swapaxes(0,1))
-            plt.colorbar(h1)
-        #h1, xedges1, yedges1, y = ax.hist2d(crds_pix[0], crds_pix[1], bins=[bins_pix_ra, bins_pix_dec])
-        #plt.colorbar(h1)
-        return h
-    elif blur:
-        blurred = gaussian_filter(h, 1)
-        if plot:
-            h1 = ax.imshow(blurred.swapaxes(0,1))
-            plt.colorbar(h1)
-        #im = ax.imshow(blurred.swapaxes(0,1))
-        #plt.colorbar(im)
-        return blurred
+color_cut = 2.0
 
-def make_wcs(h_noshort, dx, header):
-    wcs_dict = {
-        'SIMPLE' : 'T',
-        'BITPIX' : -64,
-        'NAXIS' : 2,
-        'NAXIS1' : h_noshort.shape[0],
-        'NAXIS2' : h_noshort.shape[1],
-        'WCSAXES' : 2,
-        'CRPIX1' : h_noshort.shape[0]/2,
-        'CRPIX2' : h_noshort.shape[1]/2,
-        'CDELT1' : -(dx*u.arcsec).to(u.deg).value,
-        'CDELT2' : (dx*u.arcsec).to(u.deg).value,
-        'CROTA2' : 354.6-270,
-        'CUNIT1' : 'deg',
-        'CUNIT2' : 'deg',
-        'CTYPE1' : 'RA---TAN',
-        'CTYPE2' : 'DEC--TAN',
-        'CRVAL1' : header['CRVAL1'],
-        'CRVAL2' : header['CRVAL2'],
-        #'LONPOL' : 180.0,
-        #'LATPOL' : 0.0,
-        #'MJDREF' : 0.0,
-        'BUNIT' : '# Stars/px'
-    }
-    input_wcs = WCS(wcs_dict)
-    return input_wcs
+def make_grid(shape=cutout_405.data.shape):
+    grid = np.empty(shape)
+    grid.fill(np.nan)
+    return grid
 
-def construct_cube(tbl, ww, header, dx=2, blur=True, color_couples=np.array([(b, b+1) for b in np.arange(0, 6, 1)]), plot=False):
-    tbl_noshort = tbl[~(np.isnan(tbl['mag_ab_f410m'])) & ~(np.isnan(tbl['mag_ab_f410m'])) & (np.isnan(tbl['mag_ab_f182m']))]
-    h_noshort = star_density_color(tbl_noshort, ww, dx=dx, blur=blur)
+def get_pixcoords(cat, ww):
+    return np.array(ww.all_world2pix(cat.coords.ra, cat.coords.dec, 0)).T
 
-    tbl_use = tbl[~(np.isnan(tbl['mag_ab_f410m'])) & ~(np.isnan(tbl['mag_ab_f410m'])) & ~(np.isnan(tbl['mag_ab_f182m']))]
-    color = tbl_use['mag_ab_f182m'] - tbl_use['mag_ab_f410m']
-    cube = np.array([star_density_color(tbl_use[(color > lowmag) & (color < highmag)], ww, dx=dx, blur=blur, plot=plot) for lowmag, highmag in color_couples])
+def make_kdtree(data, k=5):
+    kdtr = KDTree(data)
+    seps, inds = kdtr.query(data, k=[k])
+    return seps, inds
 
-    cube_full = np.concatenate([cube, h_noshort.reshape((1,h_noshort.shape[0],h_noshort.shape[1]))])
-    input_wcs = make_wcs(h_noshort, dx, header)
-    hdu_cube = fits.PrimaryHDU(data=cube_full.swapaxes(1,2), header=input_wcs.to_header())
+def get_seps_arcsec(seps, pixel_scale):
+    return seps * pixel_scale
 
-    return hdu_cube
+def fill_grid(grid, data, value):
+    data_rounded = np.floor(data).astype(int)
+    for i in range(len(data_rounded)):
+        x, y = data_rounded[i]
+        grid[y, x] = value[i]
+    return grid
 
-def make_cube():
-    # Open file for WCS information
-    fn_405 = f'{basepath}/images/jw02221-o002_t001_nircam_clear-f405n-merged_i2d.fits'
-    hdu = fits.open(fn_405)[1]
-    ww = WCS(hdu.header)
-    header = hdu.header
+def interpolate_grid(grid, fwhm):
+    kernel = Gaussian2DKernel(fwhm)
+    grid = convolve_fft(grid, kernel, nan_treatment='interpolate')
+    return grid
 
-    # Open catalog file
-    cat_use = make_cat_use()
+def make_stellar_separation_map_interp(cat=cat_filament, color_cut=2.0, ext=CT06_MWGC(),
+                                       pos=SkyCoord('17:46:20.6290029866', '-28:37:49.5114204513', unit=(u.hour, u.deg)), 
+                                       l=113.8*u.arcsec, w=3.3*u.arcmin, fwhm=30, k=5):
+    mask = (cat_filament.color('f182m', 'f410m') > color_cut)
+    mask = np.logical_or(mask, np.isnan(cat_filament.band('f182m')) & ~np.isnan(cat_filament.band('f410m')))
+    cat_use_red = JWSTCatalog(cat.catalog[mask])
 
-    color_couples = [(0, 0.85), (0.85, 1.45), (1.45, 2), (2, 3), (3, 4), (4, 5), (5, 6)]
+    cutout_405 = cm.get_cutout_405(pos, w, l)
+    grid = make_grid(cutout_405.data.shape)
+    ww = cutout_405.wcs
+    pixel_scale = ww.proj_plane_pixel_scales()[0] * u.deg.to(u.arcsec)
 
-    hdu_cube = construct_cube(cat_use.catalog, ww, header, dx=2, blur=True, plot=False, color_couples=color_couples)
-    hdu_cube.writeto(f'{basepath}/images/pseudo_extinction_cube.fits', overwrite=True)
+    data = get_pixcoords(cat_use_red, ww)
+    seps, inds = make_kdtree(data, k=k)
+    seps_arcsec = get_seps_arcsec(seps, pixel_scale)
 
-def main():
-    make_cube()
+    grid = fill_grid(grid, data, seps_arcsec[:, 0].value)
 
-main()
+    grid = interpolate_grid(grid, fwhm)
+
+    return grid
+
+def make_stellar_separation_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWGC(),
+                                pos=SkyCoord('17:46:20.6290029866', '-28:37:49.5114204513', unit=(u.hour, u.deg)), 
+                                l=113.8*u.arcsec, w=3.3*u.arcmin, fwhm=30, k=5):
+    mask = (cat_filament.color('f182m', 'f410m') > color_cut)
+    mask = np.logical_or(mask, np.isnan(cat_filament.band('f182m')) & ~np.isnan(cat_filament.band('f410m')))
+    cat_use_red = JWSTCatalog(cat.catalog[mask])
+
+    cutout_405 = cm.get_cutout_405(pos, w, l)
+    grid = make_grid(cutout_405.data.shape)
+    ww = cutout_405.wcs
+    pixel_scale = ww.proj_plane_pixel_scales()[0] * u.deg.to(u.arcsec)
+
+    data_red = np.array(ww.all_world2pix(cat_use_red.coords.ra, cat_use_red.coords.dec, 0)).T
+    kdtr_red = KDTree(data_red)
+
+    grid_coords = np.indices(grid.T.shape)
+    grid_coords = grid_coords.reshape(2, -1).T
+
+    seps, inds = kdtr_red.query(grid_coords + 0.5, k=[k])
+
+    grid[grid_coords[:, 1], grid_coords[:, 0]] = (seps[:, 0] * pixel_scale).value
+
+    return grid
+
+def make_stellar_density_map_interp(cat=cat_filament, color_cut=2.0, ext=CT06_MWGC(),
+                                    pos=SkyCoord('17:46:20.6290029866', '-28:37:49.5114204513', unit=(u.hour, u.deg)), 
+                                    l=113.8*u.arcsec, w=3.3*u.arcmin, fwhm=30, k=5):
+
+    grid = make_stellar_separation_map_interp(cat=cat, color_cut=color_cut, ext=ext, pos=pos, l=l, w=w, fwhm=fwhm, k=k)
+
+    return k/grid**2
+
+def make_stellar_density_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWGC(), 
+                             pos=SkyCoord('17:46:20.6290029866', '-28:37:49.5114204513', unit=(u.hour, u.deg)),
+                             l=113.8*u.arcsec, w=3.3*u.arcmin, fwhm=30, k=5):
+    
+        grid = make_stellar_separation_map(cat=cat, color_cut=color_cut, ext=ext, pos=pos, l=l, w=w, fwhm=fwhm, k=k)
+    
+        return k/grid**2
+
+def make_extinction_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWGC(), 
+                        pos=SkyCoord('17:46:20.6290029866', '-28:37:49.5114204513', unit=(u.hour, u.deg)),
+                        l=113.8*u.arcsec, w=3.3*u.arcmin, fwhm=30, k=5):
+
+    mask = (cat_filament.color('f182m', 'f410m') > color_cut)
+    mask = np.logical_or(mask, np.isnan(cat_filament.band('f182m')) & ~np.isnan(cat_filament.band('f410m')))
+    cat_use_red = JWSTCatalog(cat.catalog[mask])
+
+    cutout_405 = cm.get_cutout_405(pos, w, l)
+    grid = make_grid(cutout_405.data.shape)
+    ww = cutout_405.wcs
+    pixel_scale = ww.proj_plane_pixel_scales()[0] * u.deg.to(u.arcsec)
+
+    data = get_pixcoords(cat_use_red, ww)
+    seps, inds = make_kdtree(data, k=k)
+
+    Av = np.array(cat_use_red.get_Av_182410(ext=ext))
+    too_red = np.isnan(np.array(cat_use_red.band('f182m'))) & ~np.isnan(np.array(cat_use_red.band('f410m')))
+    Av[too_red] = 90
+
+    grid = fill_grid(grid, data, Av)
+
+    grid = interpolate_grid(grid, fwhm)
+
+    return grid
