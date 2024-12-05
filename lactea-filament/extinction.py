@@ -160,7 +160,15 @@ def make_extinction_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWGC(),
 
     return grid
 
-def get_mass_estimate(ext_map, ww, dist=5*u.kpc, factor=2*10**21*u.cm**-2, mpp=2.8*u.u):
+def extinction_map_error():
+    pass
+
+def get_column_density_estimate(ext_map, ww, dist=5*u.kpc, factor=2.21*10**21*u.cm**-2):
+    grid_N = np.nansum(ext_map) * factor
+    return grid_N
+
+
+def get_mass_estimate(ext_map, ww, dist=5*u.kpc, factor=2.21*10**21*u.cm**-2, mpp=2.8*u.u):
     grid_N = np.nansum(ext_map) * factor
     pixel_area_physical = (ww.proj_plane_pixel_scales()[0] * dist).to(u.cm, u.dimensionless_angles())**2
     return (grid_N * pixel_area_physical * mpp).to(u.Msun)
