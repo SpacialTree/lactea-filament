@@ -8,33 +8,25 @@ from astropy.nddata import Cutout2D
 from astropy.io import fits
 from astropy.table import Table
 from cmd_plot import Plotter
+import regions
+from regions import Regions
+from astroquery.svo_fps import SvoFps
+from dust_extinction.averages import CT06_MWGC
+
+basepath = '/orange/adamginsburg/jwst/cloudc/'
 
 class VVVCatalog(Plotter):
     def __init__(self, catalog):
         super().__init__()
         self.catalog = catalog
 
-        self.ra = catalog['RAJ2000']
-        self.dec = catalog['DEJ2000']
+        self.coords = SkyCoord(self.catalog['RAJ2000'], self.catalog['DEJ2000'], unit=(u.deg, u.deg))
+        self.ra = self.coords.ra
+        self.dec = self.coords.dec
 
-        self.catalog['Zmag'] = catalog['Z1ap1']
-        self.catalog['Ymag'] = catalog['Y1ap1']
-        self.catalog['Jmag'] = catalog['J1ap1']
-        self.catalog['Hmag'] = catalog['H1ap1']
-        self.catalog['Ksmag'] = catalog['Ks1ap1']
+    def band(self, band): # J, H, Ks, Y, Z
+        return self.catalog[f'{band}1ap1']
 
     def color(self, band1, band2):
-        return self.catalog[band1] - self.catalog[band2]
-
-    def band(self, band):
-        return self.catalog[band]
-
-    def plot_position(self, ax=None, **kwargs):
-        if ax is None:
-            ax = plt.gca()
-        ax.scatter(self.ra, self.dec, **kwargs)
-        ax.set_xlabel('Right Ascension')
-        ax.set_ylabel('Declination')
-        return ax
-
-        
+        print('why')
+        return self.band(band1) - self.band(band2)
