@@ -66,7 +66,7 @@ class JWSTCatalog(Plotter):
         av212410 = (self.color('f212n', 'f410m')) / (ext(2.12*u.um) - ext(4.10*u.um))
         return av212410
     
-    def get_Av(band1, band2, ext=CT06_MWGC()):
+    def get_Av(self, band1, band2, ext=CT06_MWGC()):
         return (self.color(band1, band2)) / (ext(int(band1[1:-1])/100*u.um) - ext(int(band2[1:-1])/100*u.um))
 
     def get_qf_mask(self, qf=0.4):
