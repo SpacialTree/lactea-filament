@@ -65,6 +65,9 @@ class JWSTCatalog(Plotter):
     def get_Av_212410(self, ext=CT06_MWGC()):
         av212410 = (self.color('f212n', 'f410m')) / (ext(2.12*u.um) - ext(4.10*u.um))
         return av212410
+    
+    def get_Av(band1, band2, ext=CT06_MWGC()):
+        return (self.color(band1, band2)) / (ext(int(band1[1:-1])/100*u.um) - ext(int(band2[1:-1])/100*u.um))
 
     def get_qf_mask(self, qf=0.4):
         mas_405 = np.logical_or(np.array(self.catalog['qfit_f405n'])<qf, np.isnan(np.array(self.catalog['mag_ab_f405n'])))
