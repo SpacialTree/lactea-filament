@@ -1,10 +1,3 @@
-import icemodels
-imp.reload(icemodels)
-from icemodels import absorbed_spectrum, absorbed_spectrum_Gaussians, convsum, fluxes_in_filters, load_molecule, load_molecule_ocdb, atmo_model, molecule_data
-from icemodels.gaussian_model_components import co_ice_wls_icm, co_ice_wls, co_ice_widths, co_ice_bandstrength
-from astroquery.svo_fps import SvoFps
-from astropy import table
-
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io import fits
@@ -19,6 +12,13 @@ from spectral_cube import SpectralCube
 import importlib as imp
 
 from dust_extinction.averages import CT06_MWLoc, I05_MWAvg, CT06_MWGC, G21_MWAvg, RL85_MWGC, RRP89_MWGC, F11_MWGC
+
+import icemodels
+imp.reload(icemodels)
+from icemodels import absorbed_spectrum, absorbed_spectrum_Gaussians, convsum, fluxes_in_filters, load_molecule, load_molecule_ocdb, atmo_model, molecule_data
+from icemodels.gaussian_model_components import co_ice_wls_icm, co_ice_wls, co_ice_widths, co_ice_bandstrength
+from astroquery.svo_fps import SvoFps
+from astropy import table
 
 from jwst_plots import make_cat_use
 from jwst_plots import JWSTCatalog
