@@ -7,6 +7,10 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord
 import regions
 from regions import Regions
+from scipy.spatial import KDTree
+from astropy.convolution import interpolate_replace_nans, Gaussian2DKernel
+from astropy.convolution import convolve, convolve_fft
+from astropy.nddata import Cutout2D
 
 from spectral_cube import SpectralCube
 import importlib as imp
@@ -63,7 +67,6 @@ def get_dmags():
 
     # CO Ice Absorption Spectrum
     aspec = absorbed_spectrum(1e18*u.cm**-2, load_molecule('co'), spectrum=phx4000['fnu'], xarr=xarr)
-    plt.plot(xarr.to(u.um), aspec / aspec.max())
 
     trans = SvoFps.get_transmission_data(filterid)
 
@@ -108,7 +111,8 @@ def get_dmags():
 def unextinct_466m410(cat, ext=CT06_MWLoc()):
     av182410 = cat.get_Av('f182m', 'f410m')
     measured_466m410 = cat.color('f466n', 'f410m')
-    unextincted_466m410_av212410 = measured_466m410 + (ext()(4.66*u.um) - ext()(4.10*u.um)) * av212410
+    unextincted_466m410_av212410 = measured_466m410 + (ext(4.66*u.um) - ext(4.10*u.um)) * av212410
+
     return unextincted_466m410_av212410
 
 def get_co_colum(cat, ext=CT06_MWLoc()):
@@ -132,7 +136,7 @@ def make_co_column_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), pos=po
     pixel_scale = ww.proj_plane_pixel_scales()[0] * u.deg.to(u.arcsec)
 
     data = ex.get_pixcoords(cat_use_red, ww)
-    seps, inds = ex.get_separations(data, grid, k=k)
+    seps, inds = ex.make_kdtree(data, k=k)
 
     co_column = get_co_colum(cat_use_red, ext=ext)
 
