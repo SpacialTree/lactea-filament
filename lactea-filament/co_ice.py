@@ -111,7 +111,7 @@ def get_dmags():
 def unextinct_466m410(cat, ext=CT06_MWLoc()):
     av182410 = cat.get_Av('f182m', 'f410m')
     measured_466m410 = cat.color('f466n', 'f410m')
-    unextincted_466m410_av212410 = measured_466m410 + (ext(4.66*u.um) - ext(4.10*u.um)) * av212410
+    unextincted_466m410_av212410 = measured_466m410 + (ext(4.66*u.um) - ext(4.10*u.um)) * av182410
 
     return unextincted_466m410_av212410
 
