@@ -48,16 +48,14 @@ data = np.array(pixcoords).T
 
 color_cut = 2.0
 
-def get_dmags():
-
-    # Filter set up 
+def co_ice_modeling():
+    
     filter_data = SvoFps.get_filter_list('JWST', instrument="NIRCam")
     filter_data.add_index('filterID')
     flxd = filter_data['filterID']
     jfilts = SvoFps.get_filter_list('JWST')
     jfilts.add_index('filterID')
 
-    # Stellar Atmosphere Model
     filterid = 'JWST/NIRCam.F466N'
     xarr = np.linspace(filter_data.loc[filterid]['WavelengthMin'] * u.AA,
                     filter_data.loc[filterid]['WavelengthMax'] * u.AA,
@@ -65,7 +63,6 @@ def get_dmags():
     xarr = np.linspace(3.95*u.um, 4.8*u.um, 5000)
     phx4000 = atmo_model(4000, xarr=xarr)
 
-    # CO Ice Absorption Spectrum
     aspec = absorbed_spectrum(1e18*u.cm**-2, load_molecule('co'), spectrum=phx4000['fnu'], xarr=xarr)
 
     trans = SvoFps.get_transmission_data(filterid)
@@ -82,7 +79,7 @@ def get_dmags():
     dmags410 = []
     dmags466 = []
 
-    print(f"  column,   mag410,  mag410*,  mag466n, mag466n*, dmag410, dmag466")
+    #print(f"  column,   mag410,  mag410*,  mag466n, mag466n*, dmag410, dmag466")
     for col in cols:
         # for each column density of CO (ice?), make a spectrum of it 
         # absorbed_spectrum takes spectrum and puts the effects of an absorption feature in front of it 
@@ -104,43 +101,39 @@ def get_dmags():
         dmags466.append(mags_x[1]-mags_x_star[1])
         dmags410.append(mags_x[0]-mags_x_star[0])
         # why would f410m change at all?
-        print(f"{col:8.1g}, {mags_x[0]:8.1f}, {mags_x_star[0]:8.1f}, {mags_x[1]:8.1f}, {mags_x_star[1]:8.1f}, {dmags410[-1]:8.1f}, {dmags466[-1]:8.1f}")
+        #print(f"{col:8.1g}, {mags_x[0]:8.1f}, {mags_x_star[0]:8.1f}, {mags_x[1]:8.1f}, {mags_x_star[1]:8.1f}, {dmags410[-1]:8.1f}, {dmags466[-1]:8.1f}")
 
-    return cols, dmags410, dmags466
-
-def unextinct_466m410(cat, ext=CT06_MWLoc()):
-    av182410 = cat.get_Av('f182m', 'f410m')
-    measured_466m410 = cat.color('f466n', 'f410m')
-    unextincted_466m410_av212410 = measured_466m410 + (ext(4.66*u.um) - ext(4.10*u.um)) * av182410
-
-    return unextincted_466m410_av212410
-
-def get_co_colum(cat, ext=CT06_MWLoc()):
-    cols, dmags410, dmags466 = get_dmags()
     dmag_466m410 = np.array(dmags466) - np.array(dmags410) 
+    return dmag_466m410, cols
 
-    unextincted_466m410_av212410 = unextinct_466m410(cat, ext=ext)
+def unextinct(cat, ext, band1, band2):
+    return cat.color(band1, band2) + (ext(int(band1[1:-1])/100*u.um) - ext(int(band2[1:-1])/100*u.um)) * cat.get_Av('f182m', 'f410m')
 
-    inferred_co_column_av212410 = np.interp(unextincted_466m410_av212410, dmag_466m410[cols<1e21], cols[cols<1e21])
+def make_co_column_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), pos=pos, l=l, w=w, fwhm=30, k=1):
+    mask = (cat.color('f182m', 'f410m') > 2) | (np.isnan(np.array(cat.band('f182m'))) & ~np.isnan(np.array(cat.band('f410m'))))
+    mask = mask & (cat.color('f410m', 'f466n') < 0)
+    cat = JWSTCatalog(cat.catalog[mask])
 
-    return inferred_co_column_av212410
+    dmag_466m410, cols = co_ice_modeling()
 
-def make_co_column_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), pos=pos, l=l, w=w, fwhm=30, k=5):
-    mask = (cat.color('f182m', 'f410m') > color_cut) | (np.isnan(cat.band('f182m')) & ~np.isnan(cat.band('f410m')))
-    mask = mask & (cat.color('f466n', 'f410m') < 0)
-    cat_use_red = JWSTCatalog(cat.catalog[mask])
+    unextincted_466m410_av182410 = unextinct(cat, ext, 'f466n', 'f410m')
+    #measured_466m410 + (CT06_MWGC()(4.66*u.um) - CT06_MWGC()(4.10*u.um)) * av182410
+    cat.catalog['N(CO)'] = np.interp(unextincted_466m410_av182410, dmag_466m410[cols<1e21], cols[cols<1e21])
 
     cutout_405 = cm.get_cutout_405(pos, w, l)
     grid = ex.make_grid(cutout_405.data.shape)
     ww = cutout_405.wcs
     pixel_scale = ww.proj_plane_pixel_scales()[0] * u.deg.to(u.arcsec)
 
-    data = ex.get_pixcoords(cat_use_red, ww)
+    data = ex.get_pixcoords(cat, ww)
     seps, inds = ex.make_kdtree(data, k=k)
+    grid = ex.fill_grid(grid, data, cat.catalog['N(CO)'])
 
-    co_column = get_co_colum(cat_use_red, ext=ext)
+    grid_interp = ex.interpolate_grid(grid, fwhm)
 
-    grid = ex.fill_grid(grid, data, co_column)
-    grid = ex.interpolate_grid(grid, fwhm)
+    return grid_interp
 
-    return grid
+def get_mass_estimate(ext_map, ww, dist=5*u.kpc, co_abundance=10**(-4), mpp=2.8*u.u):
+    pixel_area_physical = (ww.proj_plane_pixel_scales()[0] * dist).to(u.cm, u.dimensionless_angles())**2
+    grid_N = np.nansum(ext_map)*u.cm**(-2) * mpp * pixel_area_physical / co_abundance
+    return grid_N.to(u.Msun)
