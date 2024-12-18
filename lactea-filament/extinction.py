@@ -146,7 +146,7 @@ def make_extinction_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWGC(),
     mask = (cat_filament.color('f182m', 'f410m') > color_cut)
     mask = np.logical_or(mask, np.isnan(cat_filament.band('f182m')) & ~np.isnan(cat_filament.band('f410m')))
     if reg is not None:
-        mask = np.logical_and(mask, cat_filament.table_region_mask([reg], ww))
+        mask = np.logical_and(mask, cat_filament.table_region_mask(reg, ww))
     cat_use_red = JWSTCatalog(cat.catalog[mask])
 
     data = get_pixcoords(cat_use_red, ww)
