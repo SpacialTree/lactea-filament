@@ -136,7 +136,7 @@ def make_stellar_density_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWGC(),
 
 def make_extinction_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWGC(), 
                         pos=SkyCoord('17:46:20.6290029866', '-28:37:49.5114204513', unit=(u.hour, u.deg)),
-                        l=113.8*u.arcsec, w=3.3*u.arcmin, fwhm=30, k=5, Av_fill=90):
+                        l=113.8*u.arcsec, w=3.3*u.arcmin, fwhm=30, k=5, Av_fill=85, reg=None):
 
     mask = (cat_filament.color('f182m', 'f410m') > color_cut)
     mask = np.logical_or(mask, np.isnan(cat_filament.band('f182m')) & ~np.isnan(cat_filament.band('f410m')))
