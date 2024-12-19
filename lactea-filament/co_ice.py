@@ -109,10 +109,12 @@ def co_ice_modeling():
 def unextinct(cat, ext, band1, band2):
     return cat.color(band1, band2) + (ext(int(band1[1:-1])/100*u.um) - ext(int(band2[1:-1])/100*u.um)) * cat.get_Av('f182m', 'f410m')
 
-def make_co_column_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), pos=pos, l=l, w=w, fwhm=30, k=1):
+def make_co_column_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), pos=pos, l=l, w=w, fwhm=30, k=1, reg=None):
     mask = (cat.color('f182m', 'f410m') > 2) | (np.isnan(np.array(cat.band('f182m'))) & ~np.isnan(np.array(cat.band('f410m'))))
     mask = mask & (cat.color('f410m', 'f466n') < 0)
     cat = JWSTCatalog(cat.catalog[mask])
+    if reg is not None:
+        cat = JWSTCatalog(cat.table_region_mask([reg], ww))
 
     dmag_466m410, cols = co_ice_modeling()
 
