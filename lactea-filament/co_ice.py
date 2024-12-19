@@ -119,7 +119,7 @@ def make_co_column_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), pos=po
     mask = mask & (cat.color('f410m', 'f466n') < 0)
     cat = JWSTCatalog(cat.catalog[mask])
     if reg is not None:
-        cat = JWSTCatalog(cat.table_region_mask([reg], ww))
+        cat = JWSTCatalog(cat.table_region_mask(reg, ww))
 
     dmag_466m410, cols = co_ice_modeling()
 
