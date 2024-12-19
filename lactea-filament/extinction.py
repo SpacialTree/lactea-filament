@@ -163,6 +163,7 @@ def make_extinction_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWGC(),
     Av_const = color_cut / (ext(1.82*u.um) - ext(4.10*u.um))
 
     grid = grid - Av_const
+    grid[grid < 0] = np.nan
 
     return grid
 
