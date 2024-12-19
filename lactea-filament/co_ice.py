@@ -110,6 +110,11 @@ def unextinct(cat, ext, band1, band2):
     return cat.color(band1, band2) + (ext(int(band1[1:-1])/100*u.um) - ext(int(band2[1:-1])/100*u.um)) * cat.get_Av('f182m', 'f410m')
 
 def make_co_column_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), pos=pos, l=l, w=w, fwhm=30, k=1, reg=None):
+    cutout_405 = cm.get_cutout_405(pos, w, l)
+    grid = ex.make_grid(cutout_405.data.shape)
+    ww = cutout_405.wcs
+    pixel_scale = ww.proj_plane_pixel_scales()[0] * u.deg.to(u.arcsec)
+    
     mask = (cat.color('f182m', 'f410m') > 2) | (np.isnan(np.array(cat.band('f182m'))) & ~np.isnan(np.array(cat.band('f410m'))))
     mask = mask & (cat.color('f410m', 'f466n') < 0)
     cat = JWSTCatalog(cat.catalog[mask])
@@ -121,11 +126,6 @@ def make_co_column_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), pos=po
     unextincted_466m410_av182410 = unextinct(cat, ext, 'f466n', 'f410m')
     #measured_466m410 + (CT06_MWGC()(4.66*u.um) - CT06_MWGC()(4.10*u.um)) * av182410
     cat.catalog['N(CO)'] = np.interp(unextincted_466m410_av182410, dmag_466m410[cols<1e21], cols[cols<1e21])
-
-    cutout_405 = cm.get_cutout_405(pos, w, l)
-    grid = ex.make_grid(cutout_405.data.shape)
-    ww = cutout_405.wcs
-    pixel_scale = ww.proj_plane_pixel_scales()[0] * u.deg.to(u.arcsec)
 
     data = ex.get_pixcoords(cat, ww)
     seps, inds = ex.make_kdtree(data, k=k)
