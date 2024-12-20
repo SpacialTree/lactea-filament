@@ -239,6 +239,7 @@ def plot_moment0_contours(mom0, vmin=None, vmax=None, levels=None, ax=None, nlev
     else:
         ax.contour(mom0, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
 
+### Level generation functions, default from Carta ###
 """
 “start-step-multiplier”
 
