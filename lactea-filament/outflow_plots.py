@@ -249,9 +249,9 @@ def plot_proj_contours(mom0, vmin=None, vmax=None, levels=None, ax=None, nlevels
 
 def start_step_multiplier(data, nlevels=5, start=None, step=None, multiplier=None):
     if start is None:
-        start = np.nanmean(data) + 5*np.nanstd(data)
+        start = np.nanmean(data) + 1.7*np.nanstd(data)
     if step is None:
-        step = 4*np.nanstd(data)
+        step = 1.5*np.nanstd(data)
     if multiplier is None:
         multiplier = 1
     levels = [start]
@@ -262,9 +262,9 @@ def start_step_multiplier(data, nlevels=5, start=None, step=None, multiplier=Non
 
 def min_max_scaling(data, nlevels=5, min=None, max=None, scaling='linear'):
     if min is None:
-        min = np.nanpercentile(data, 99.9)
+        min = np.nanpercentile(data, 90)
     if max is None:
-        max = np.nanpercentile(data, 0.1)
+        max = np.nanpercentile(data, 99.9)
     if scaling == 'linear':
         levels = np.linspace(min, max, nlevels)
     elif scaling == 'log':
@@ -277,7 +277,7 @@ def percentages(data, nlevels=5, reference=None, lower=30, upper=100):
     levels = np.linspace(lower, upper, nlevels)/100 * reference
     return levels
 
-def mean_sigma_list(data, nlevels=5, mean=None, sigma=None, sigma_list=[-5, 5, 9, 13, 17]):
+def mean_sigma_list(data, nlevels=5, mean=None, sigma=None, sigma_list=[3, 5, 7]):
     if mean is None:
         mean = np.nanmean(data)
     if sigma is None:
