@@ -240,20 +240,7 @@ def plot_moment0_contours(mom0, vmin=None, vmax=None, levels=None, ax=None, nlev
         ax.contour(mom0, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
 
 ### Level generation functions, default from Carta ###
-"""
-“start-step-multiplier”
 
-A set of “N” levels will be computed from “Start” with a (variable) “Step” and a “Multiplier”. For example, if start = 1.0, step = 0.1, N = 5, and multiplier = 2, five levels will be generated as “1.0, 1.1, 1.3, 1.7, 2.5”. The function of the multiplier is to make the step increase for each next new level. Default parameters derived from the full image statistics (per-channel) are:
-
-    start: mean + 5 * standard deviation
-
-    step: 4 * standard deviation
-
-    N: 5
-
-    multiplier: 1
-
-"""
 def start_step_multiplier(data, nlevels=5, start=None, step=None, multiplier=None):
     if start is None:
         start = np.nanmean(data) + 5*np.nanstd(data)
@@ -267,22 +254,6 @@ def start_step_multiplier(data, nlevels=5, start=None, step=None, multiplier=Non
         step *= multiplier
     return levels
 
-""" 
-“min-max-scaling”
-
-A set of “N” levels will be calculated between “Min” and “Max” based on the “Scaling” function. For 
-example, if min = 2, max = 10, N = 5, scaling = “linear”, five levels will be generated as “2, 4, 6, 8, 10”. 
-Default parameters derived from the full image statistics (per-channel) are:
-
-    min: lower bound of 99.9% clip
-
-    max: upper bound of 99.9% clip
-
-    N: 5
-
-    scaling: “linear”
-
-"""
 def min_max_scaling(data, nlevels=5, min=None, max=None, scaling='linear'):
     if min is None:
         min = np.nanpercentile(data, 99.9)
@@ -294,40 +265,12 @@ def min_max_scaling(data, nlevels=5, min=None, max=None, scaling='linear'):
         levels = np.logspace(np.log10(min), np.log10(max), nlevels)
     return levels
 
-""" 
-“percentages”
-
-A set of “N” levels will be derived as the percentages (”Lower(%)” and “Upper(%)”) of the “Reference” 
-in linear spacing. For example, if reference = 1.0, N = 5, lower(%) = 20, upper(%) = 100, five levels 
-will be generated as “0.2, 0.4, 0.6, 0.8, 1.0”.
-
-    reference: upper 99.9% clip
-
-    N: 5
-
-    lower(%): 20
-
-    upper(%): 100
-
-"""
 def percentages(data, nlevels=5, reference=None, lower=30, upper=100):
     if reference is None:
         reference = np.nanpercentile(data, 99.9)
     levels = np.linspace(lower, upper, nlevels)/100 * reference
     return levels
 
-""" 
-“mean-sigma-list”
-
-A set of “N” levels will be generated as “Mean” plus multiples of “Sigma” based on the “Sigma list”. For example, if mean = 1, sigma = 0.1, and sigma list = [-5, 5, 10, 15, 20], five levels will be generated as “0.5, 1.5, 2.0, 2.5, 3.0”. Default parameters derived from the full image statistics (per-channel) are:
-
-    mean: full image mean value
-
-    sigma: full image standard deviation
-
-    sigma list: [-5, 5, 9, 13, 17]
-
-"""
 def mean_sigma_list(data, nlevels=5, mean=None, sigma=None, sigma_list=[-5, 5, 9, 13, 17]):
     if mean is None:
         mean = np.nanmean(data)
