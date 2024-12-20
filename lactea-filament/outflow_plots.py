@@ -12,15 +12,15 @@ class OutflowPlot:
     """ 
     Class for quickly plotting outflows from astronomical data cubes.
     """
-    def __init__(self, position, l, w, restfreq=None, cube_fn=default_fn):
+    def __init__(self, position, l=5*u.arcsec, w=5*u.arcsec, restfreq=None, cube_fn=default_fn, reg=None):
         """ 
         Parameters
         ----------
         position : astropy.coordinates.SkyCoord
             Center of the region to extract from the cube.
-        l : astropy.units.Quantity
+        l : astropy.units.Quantity, default=5*u.arcsec
             Length of the region to extract from the cube.
-        w : astropy.units.Quantity
+        w : astropy.units.Quantity, default=5*u.arcsec
             Width of the region to extract from the cube.
         restfreq : astropy.units.Quantity, optional
             Rest frequency of the spectral cube. If not provided, the rest frequency will be read from the FITS header.
@@ -45,7 +45,10 @@ class OutflowPlot:
             except KeyError:
                 raise ValueError("RESTFRQ keyword not found in FITS header and no restfreq provided.")
                 
-        self.reg = regions.RectangleSkyRegion(self.position, width=self.l, height=self.w)
+        if reg is not None:
+            self.reg = reg
+        else:
+            self.reg = regions.RectangleSkyRegion(self.position, width=self.l, height=self.w)
 
     def open_cube(self):
         """ 
