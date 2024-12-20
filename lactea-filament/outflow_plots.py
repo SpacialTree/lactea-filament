@@ -135,17 +135,7 @@ class OutflowPlot:
         nlevels : int, optional
             Number of contour levels to generate.
         """
-        if level_type == 'start-step-multiplier':
-            levels = start_step_multiplier(data, nlevels=nlevels)
-        elif level_type == 'min-max-scaling':
-            levels = min_max_scaling(data, nlevels=nlevels)
-        elif level_type == 'percentages' or level_type == 'percentile':
-            levels = percentages(data, nlevels=nlevels)
-        elif level_type == 'mean-sigma-list':
-            levels = mean_sigma_list(data, nlevels=nlevels)
-        else:
-            raise ValueError("Invalid level_type. Options are 'start-step-multiplier', 'min-max-scaling', 'percentages', 'mean-sigma-list'.")
-        return levels
+        return make_levels(data, level_type=level_type, nlevels=nlevels)
         
     def plot_moment0_contours(self, vmin=None, vmax=None, levels=None, ax=None, nlevels=5, **kwargs):
         """ 
@@ -163,21 +153,10 @@ class OutflowPlot:
             Axes object to plot the moment 0 map on.
         """
         moment0 = self.get_moment0(vmin, vmax)
-        if ax is None:
-            ax = plt.subplot(projection=moment0.wcs)
-        if levels is None:
-            levels = self.make_levels('percentages', nlevels=nlevels)
-            ax.contour(moment0.value, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
-        elif isinstance(levels, list):
-            ax.contour(moment0.value, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
-        elif isinstance(levels, str):
-            levels = self.make_levels(moment0.value, level_type=levels, nlevels=nlevels)
-            ax.contour(moment0.value, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
-        else:
-            ax.contour(moment0.value, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
+        plot_moment0_contours(moment0, vmin, vmax, levels, ax, nlevels, **kwargs)
 
     def plot_outflows(self, vcen=0*u.km/u.s, vmin=-10*u.km/u.s, vmax=10*u.km/u.s, levels=None, 
-                      ax=None, blue_color='blue', red_color='red', **kwargs):
+                      ax=None, blue_color='blue', red_color='red', nlevels=5, **kwargs):
         """
         Plot blue and red outflows on the moment 0 map.
 
@@ -201,9 +180,64 @@ class OutflowPlot:
         if ax is None:
             ax = plt.subplot(projection=self.get_moment0().wcs)
         # Plot redshifted outflow
-        self.plot_moment0_contours(vmin=vcen, vmax=vmax, levels=levels, ax=ax, color=red_color, **kwargs)
+        self.plot_moment0_contours(vmin=vcen, vmax=vmax, levels=levels, ax=ax, colors=red_color, nlevels=nlevels, **kwargs)
         # Plot blueshifted outflow
-        self.plot_moment0_contours(vmin=vmin, vmax=vcen, levels=levels, ax=ax, color=blue_color, **kwargs)
+        self.plot_moment0_contours(vmin=vmin, vmax=vcen, levels=levels, ax=ax, colors=blue_color, nlevels=nlevels, **kwargs)
+
+def make_levels(data, level_type='percentages', nlevels=5):
+    """ 
+    Generate contour levels for the moment 0 map.
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        Data array of the moment 0 map.
+    level_type : str
+        Type of contour levels to generate. Options are 'start-step-multiplier', 'min-max-scaling', 'percentages', 'mean-sigma-list'.
+    nlevels : int, optional
+        Number of contour levels to generate.
+    """
+    if level_type == 'start-step-multiplier':
+        levels = start_step_multiplier(data, nlevels=nlevels)
+    elif level_type == 'min-max-scaling':
+        levels = min_max_scaling(data, nlevels=nlevels)
+    elif level_type == 'percentages' or level_type == 'percentile':
+        levels = percentages(data, nlevels=nlevels)
+    elif level_type == 'mean-sigma-list':
+        levels = mean_sigma_list(data, nlevels=nlevels)
+    else:
+        raise ValueError("Invalid level_type. Options are 'start-step-multiplier', 'min-max-scaling', 'percentages', 'mean-sigma-list'.")
+    return levels
+
+def plot_moment0_contours(mom0, vmin=None, vmax=None, levels=None, ax=None, nlevels=5, **kwargs):
+    """ 
+    Plot contours of the moment 0 map of the spectral cube.
+
+    Parameters
+    ----------
+    mom0 : Projection
+        Moment 0 map of the spectral cube.
+    vmin : astropy.units.Quantity, optional
+        Minimum velocity of the slab.
+    vmax : astropy.units.Quantity, optional
+        Maximum velocity of the slab.
+    levels : list, str, optional
+        List of contour levels to plot or type of levels to generate.
+    ax : matplotlib.axes.Axes, optional
+        Axes object to plot the moment 0 map on.
+    """
+    if ax is None:
+        ax = plt.subplot()
+    if levels is None:
+        levels = make_levels(mom0, level_type='percentages', nlevels=nlevels)
+        ax.contour(mom0, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
+    elif isinstance(levels, list):
+        ax.contour(mom0, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
+    elif isinstance(levels, str):
+        levels = make_levels(mom0, level_type=levels, nlevels=nlevels)
+        ax.contour(mom0, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
+    else:
+        ax.contour(mom0, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
 
 """
 “start-step-multiplier”
@@ -275,7 +309,7 @@ will be generated as “0.2, 0.4, 0.6, 0.8, 1.0”.
     upper(%): 100
 
 """
-def percentages(data, nlevels=5, reference=None, lower=20, upper=100):
+def percentages(data, nlevels=5, reference=None, lower=30, upper=100):
     if reference is None:
         reference = np.nanpercentile(data, 99.9)
     levels = np.linspace(lower, upper, nlevels)/100 * reference
