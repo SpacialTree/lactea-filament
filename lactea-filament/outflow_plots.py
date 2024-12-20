@@ -4,6 +4,7 @@ from astropy.io import fits
 import astropy.units as u
 from astropy.wcs import WCS
 from astropy.coordinates import SkyCoord
+from astropy.table import Table
 import regions
 from regions import Regions
 from spectral_cube import SpectralCube
@@ -153,7 +154,7 @@ class OutflowPlot:
             Axes object to plot the moment 0 map on.
         """
         moment0 = self.get_moment0(vmin, vmax)
-        plot_moment0_contours(moment0, vmin, vmax, levels, ax, nlevels, **kwargs)
+        plot_proj_contours(moment0, vmin, vmax, levels, ax, nlevels, **kwargs)
 
     def plot_outflows(self, vcen=0*u.km/u.s, vmin=-10*u.km/u.s, vmax=10*u.km/u.s, levels=None, 
                       ax=None, blue_color='blue', red_color='red', nlevels=5, **kwargs):
@@ -209,7 +210,7 @@ def make_levels(data, level_type='percentages', nlevels=5):
         raise ValueError("Invalid level_type. Options are 'start-step-multiplier', 'min-max-scaling', 'percentages', 'mean-sigma-list'.")
     return levels
 
-def plot_moment0_contours(mom0, vmin=None, vmax=None, levels=None, ax=None, nlevels=5, **kwargs):
+def plot_proj_contours(mom0, vmin=None, vmax=None, levels=None, ax=None, nlevels=5, **kwargs):
     """ 
     Plot contours of the moment 0 map of the spectral cube.
 
@@ -229,15 +230,15 @@ def plot_moment0_contours(mom0, vmin=None, vmax=None, levels=None, ax=None, nlev
     if ax is None:
         ax = plt.subplot()
     if levels is None:
-        levels = make_levels(mom0, level_type='percentages', nlevels=nlevels)
-        ax.contour(mom0, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
+        levels = make_levels(mom0.data, level_type='percentages', nlevels=nlevels)
+        ax.contour(mom0.data, levels=levels, transform=ax.get_transform(mom0.wcs), **kwargs)
     elif isinstance(levels, list):
-        ax.contour(mom0, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
+        ax.contour(mom0.data, levels=levels, transform=ax.get_transform(mom0.wcs), **kwargs)
     elif isinstance(levels, str):
-        levels = make_levels(mom0, level_type=levels, nlevels=nlevels)
-        ax.contour(mom0, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
+        levels = make_levels(mom0.data, level_type=levels, nlevels=nlevels)
+        ax.contour(mom0.data, levels=levels, transform=ax.get_transform(mom0.wcs), **kwargs)
     else:
-        ax.contour(mom0, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
+        ax.contour(mom0.data, levels=levels, transform=ax.get_transform(mom0.wcs), **kwargs)
 
 ### Level generation functions, default from Carta ###
 
@@ -287,12 +288,13 @@ def quickplot_SiO(position, l=5*u.arcsec, w=5*u.arcsec, reg=None):
     cube_fn = default_fn
     restfreq = default_restfreq
     op = OutflowPlot(position, l=l, w=w, reg=reg, cube_fn=cube_fn, restfreq=restfreq)
-    op.plot_outflows()
+    return op
 
 def get_ACES_info(line, basepath='/orange/adamginsburg/jwst/cloudc/alma/ACES/'):
     spec_tab = Table.read(f'/orange/adamginsburg/jwst/cloudc/analysis/linelist.csv')
     mol = spec_tab[spec_tab['Line']==line]
     restfreq = mol['Rest (GHz)'].data[0]*u.GHz
+    spw = mol['12m SPW'].data[0]
     cube_fn = f'{basepath}/uid___A001_X15a0_X1a8.s38_0.Sgr_A_star_sci.spw{spw}.cube.I.iter1.image.pbcor.fits'
     return restfreq, cube_fn
 
@@ -306,4 +308,4 @@ def quickplot_ACES(line, position, l=5*u.arcsec, w=5*u.arcsec, reg=None):
         raise ValueError(f"Line '{line}' not found in ACES linelist.csv.")
 
     op = OutflowPlot(position, l=l, w=w, reg=reg, cube_fn=cube_fn, restfreq=restfreq)
-    op.plot_outflows()
+    return op
