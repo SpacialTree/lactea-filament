@@ -122,21 +122,29 @@ class OutflowPlot:
             ax = plt.subplot(projection=moment0.wcs)
         ax.imshow(moment0.value, **kwargs)
 
-    ### Todo: Add in default Carta contour stylings
-    def make_levels(self, data, nlevels=5):
+    def make_levels(self, data, level_type='percentages', nlevels=5):
         """ 
-        Create linear contour levels for the moment 0 map.
+        Generate contour levels for the moment 0 map.
 
         Parameters
         ----------
-        data : np.ndarray
-            Data to create contour levels from.
+        data : numpy.ndarray
+            Data array of the moment 0 map.
+        level_type : str
+            Type of contour levels to generate. Options are 'start-step-multiplier', 'min-max-scaling', 'percentages', 'mean-sigma-list'.
         nlevels : int, optional
-            Number of contour levels to create.
+            Number of contour levels to generate.
         """
-        data_max = np.nanmax(data)
-        data_min = np.nanmin(data)
-        levels = np.linspace(data_min, data_max, nlevels)
+        if level_type == 'start-step-multiplier':
+            levels = start_step_multiplier(data, nlevels=nlevels)
+        elif level_type == 'min-max-scaling':
+            levels = min_max_scaling(data, nlevels=nlevels)
+        elif level_type == 'percentages' or level_type == 'percentile':
+            levels = percentages(data, nlevels=nlevels)
+        elif level_type == 'mean-sigma-list':
+            levels = mean_sigma_list(data, nlevels=nlevels)
+        else:
+            raise ValueError("Invalid level_type. Options are 'start-step-multiplier', 'min-max-scaling', 'percentages', 'mean-sigma-list'.")
         return levels
         
     def plot_moment0_contours(self, vmin=None, vmax=None, levels=None, ax=None, **kwargs):
@@ -158,10 +166,12 @@ class OutflowPlot:
         if ax is None:
             ax = plt.subplot(projection=moment0.wcs)
         if levels is None:
-            levels = self.make_levels(moment0.value)
+            levels = self.make_levels('percentages', nlevels=5)
             ax.contour(moment0.value, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
-        if levels == 'percentile':
-            levels = make_percentile_list(moment0.value)
+        elif isinstance(levels, list):
+            ax.contour(moment0.value, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
+        elif levels is in ['start-step-multiplier', 'min-max-scaling', 'percentages', 'mean-sigma-list']:
+            levels = self.make_levels(moment0.value, level_type=levels, nlevels=5)
             ax.contour(moment0.value, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
         else:
             ax.contour(moment0.value, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
@@ -221,6 +231,76 @@ def start_step_multiplier(data, nlevels=5, start=None, step=None, multiplier=Non
         levels.append(levels[-1] + step)
         step *= multiplier
     return levels
+
+""" 
+“min-max-scaling”
+
+A set of “N” levels will be calculated between “Min” and “Max” based on the “Scaling” function. For 
+example, if min = 2, max = 10, N = 5, scaling = “linear”, five levels will be generated as “2, 4, 6, 8, 10”. 
+Default parameters derived from the full image statistics (per-channel) are:
+
+    min: lower bound of 99.9% clip
+
+    max: upper bound of 99.9% clip
+
+    N: 5
+
+    scaling: “linear”
+
+"""
+def min_max_scaling(data, nlevels=5, min=None, max=None, scaling='linear'):
+    if min is None:
+        min = np.nanpercentile(data, 99.9)
+    if max is None:
+        max = np.nanpercentile(data, 0.1)
+    if scaling == 'linear':
+        levels = np.linspace(min, max, nlevels)
+    elif scaling == 'log':
+        levels = np.logspace(np.log10(min), np.log10(max), nlevels)
+    return levels
+
+""" 
+“percentages”
+
+A set of “N” levels will be derived as the percentages (”Lower(%)” and “Upper(%)”) of the “Reference” 
+in linear spacing. For example, if reference = 1.0, N = 5, lower(%) = 20, upper(%) = 100, five levels 
+will be generated as “0.2, 0.4, 0.6, 0.8, 1.0”.
+
+    reference: upper 99.9% clip
+
+    N: 5
+
+    lower(%): 20
+
+    upper(%): 100
+
+"""
+def percentages(data, nlevels=5, reference=None, lower=20, upper=100):
+    if reference is None:
+        reference = np.nanpercentile(data, 99.9)
+    levels = np.linspace(lower, upper, nlevels)/100 * reference
+    return levels
+
+""" 
+“mean-sigma-list”
+
+A set of “N” levels will be generated as “Mean” plus multiples of “Sigma” based on the “Sigma list”. For example, if mean = 1, sigma = 0.1, and sigma list = [-5, 5, 10, 15, 20], five levels will be generated as “0.5, 1.5, 2.0, 2.5, 3.0”. Default parameters derived from the full image statistics (per-channel) are:
+
+    mean: full image mean value
+
+    sigma: full image standard deviation
+
+    sigma list: [-5, 5, 9, 13, 17]
+
+"""
+def mean_sigma_list(data, nlevels=5, mean=None, sigma=None, sigma_list=[-5, 5, 9, 13, 17]):
+    if mean is None:
+        mean = np.nanmean(data)
+    if sigma is None:
+        sigma = np.nanstd(data)
+    levels = [mean + sig*sigma for sig in sigma_list]
+    return levels
+
 
 def quickplot_SiO(position, l=5*u.arcsec, w=5*u.arcsec, reg=None):
     """ 
