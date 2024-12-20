@@ -67,7 +67,10 @@ class OutflowPlot:
         Extract the subcube defined by the region.
         """
         cube = self.open_cube()
-        subcube = cube.subcube_from_regions([self.reg])
+        if isinstance(self.reg, list):
+            subcube = cube.subcube_from_regions(self.reg)
+        else:
+            subcube = cube.subcube_from_regions([self.reg])
         return subcube
 
     def get_spectral_slab(self, vmin, vmax):
