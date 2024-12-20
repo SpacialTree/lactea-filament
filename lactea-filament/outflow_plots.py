@@ -206,3 +206,31 @@ class OutflowPlot:
         self.plot_moment0_contours(vmin=vcen, vmax=vmax, levels=levels, ax=ax, color=red_color, **kwargs)
         # Plot blueshifted outflow
         self.plot_moment0_contours(vmin=vmin, vmax=vcen, levels=levels, ax=ax, color=blue_color, **kwargs)
+
+def quickplot_SiO(position, l=5*u.arcsec, w=5*u.arcsec, reg=None):
+    """ 
+    Quickly plot outflows from the SiO 2-1 line in the ACES data cube.
+    """
+    cube_fn = default_fn
+    restfreq = default_restfreq
+    op = OutflowPlot(position, l=l, w=w, reg=reg, cube_fn=cube_fn, restfreq=restfreq)
+    op.plot_outflows()
+
+def get_ACES_info(line, basepath='/orange/adamginsburg/jwst/cloudc/alma/ACES/'):
+    spec_tab = Table.read(f'/orange/adamginsburg/jwst/cloudc/analysis/linelist.csv')
+    mol = spec_tab[spec_tab['Line']==line]
+    restfreq = mol['Rest (GHz)'].data[0]*u.GHz
+    cube_fn = f'{basepath}/uid___A001_X15a0_X1a8.s38_0.Sgr_A_star_sci.spw{spw}.cube.I.iter1.image.pbcor.fits'
+    return restfreq, cube_fn
+
+def quickplot_ACES(line, position, l=5*u.arcsec, w=5*u.arcsec, reg=None):
+    """ 
+    Quickly plot outflows from a line in the ACES data cube.
+    """
+    try: 
+        restfreq, cube_fn = get_ACES_info(line)
+    except:
+        raise ValueError(f"Line '{line}' not found in ACES linelist.csv.")
+
+    op = OutflowPlot(position, l=l, w=w, reg=reg, cube_fn=cube_fn, restfreq=restfreq)
+    op.plot_outflows()
