@@ -138,22 +138,6 @@ class OutflowPlot:
         data_min = np.nanmin(data)
         levels = np.linspace(data_min, data_max, nlevels)
         return levels
-
-    def make_percentile_list(self, data, percentiles=[5, 95]):
-        """ 
-        Create percentile contour levels for the moment 0 map.
-
-        Parameters
-        ----------
-        data : np.ndarray
-            Data to calculate percentiles from.
-        percentiles : list, optional
-            List of percentiles to calculate.
-        """
-        levels = []
-        for p in percentiles:
-            levels.append(np.percentile(data, p))
-        return levels
         
     def plot_moment0_contours(self, vmin=None, vmax=None, levels=None, ax=None, **kwargs):
         """ 
@@ -210,6 +194,33 @@ class OutflowPlot:
         self.plot_moment0_contours(vmin=vcen, vmax=vmax, levels=levels, ax=ax, color=red_color, **kwargs)
         # Plot blueshifted outflow
         self.plot_moment0_contours(vmin=vmin, vmax=vcen, levels=levels, ax=ax, color=blue_color, **kwargs)
+
+"""
+“start-step-multiplier”
+
+A set of “N” levels will be computed from “Start” with a (variable) “Step” and a “Multiplier”. For example, if start = 1.0, step = 0.1, N = 5, and multiplier = 2, five levels will be generated as “1.0, 1.1, 1.3, 1.7, 2.5”. The function of the multiplier is to make the step increase for each next new level. Default parameters derived from the full image statistics (per-channel) are:
+
+    start: mean + 5 * standard deviation
+
+    step: 4 * standard deviation
+
+    N: 5
+
+    multiplier: 1
+
+"""
+def start_step_multiplier(data, nlevels=5, start=None, step=None, multiplier=None):
+    if start is None:
+        start = np.nanmean(data) + 5*np.nanstd(data)
+    if step is None:
+        step = 4*np.nanstd(data)
+    if multiplier is None:
+        multiplier = 1
+    levels = [start]
+    for i in range(nlevels-1):
+        levels.append(levels[-1] + step)
+        step *= multiplier
+    return levels
 
 def quickplot_SiO(position, l=5*u.arcsec, w=5*u.arcsec, reg=None):
     """ 
