@@ -147,7 +147,7 @@ class OutflowPlot:
             raise ValueError("Invalid level_type. Options are 'start-step-multiplier', 'min-max-scaling', 'percentages', 'mean-sigma-list'.")
         return levels
         
-    def plot_moment0_contours(self, vmin=None, vmax=None, levels=None, ax=None, **kwargs):
+    def plot_moment0_contours(self, vmin=None, vmax=None, levels=None, ax=None, nlevels=5, **kwargs):
         """ 
         Plot contours of the moment 0 map of the spectral cube.
 
@@ -157,8 +157,8 @@ class OutflowPlot:
             Minimum velocity of the slab.
         vmax : astropy.units.Quantity, optional
             Maximum velocity of the slab.
-        levels : list, optional
-            List of contour levels to plot.
+        levels : list, str, optional
+            List of contour levels to plot or type of levels to generate.
         ax : matplotlib.axes.Axes, optional
             Axes object to plot the moment 0 map on.
         """
@@ -166,12 +166,12 @@ class OutflowPlot:
         if ax is None:
             ax = plt.subplot(projection=moment0.wcs)
         if levels is None:
-            levels = self.make_levels('percentages', nlevels=5)
+            levels = self.make_levels('percentages', nlevels=nlevels)
             ax.contour(moment0.value, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
         elif isinstance(levels, list):
             ax.contour(moment0.value, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
-        elif levels is in ['start-step-multiplier', 'min-max-scaling', 'percentages', 'mean-sigma-list']:
-            levels = self.make_levels(moment0.value, level_type=levels, nlevels=5)
+        elif isinstance(levels, str):
+            levels = self.make_levels(moment0.value, level_type=levels, nlevels=nlevels)
             ax.contour(moment0.value, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
         else:
             ax.contour(moment0.value, levels=levels, transform=ax.get_transform(moment0.wcs), **kwargs)
