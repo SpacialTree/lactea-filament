@@ -6,6 +6,7 @@ from astropy.wcs import WCS
 from astropy.coordinates import SkyCoord
 
 default_fn = '/orange/adamginsburg/jwst/cloudc/alma/ACES/uid___A001_X15a0_X1a8.s38_0.Sgr_A_star_sci.spw27.cube.I.iter1.image.pbcor.fits'
+default_restfreq = 86.84696*u.GHz # ACES SiO 2-1
 
 class OutflowPlot:
     def __init__(self, position, l, w, restfreq=None, cube_fn=default_fn):
@@ -17,6 +18,8 @@ class OutflowPlot:
 
         if restfreq is not None:
             self.restfreq = restfreq
+        elif cube_fn == default_fn:
+            self.restfreq = default_restfreq
         else:
             header = fits.getheader(self.cube_fn)
             try:
