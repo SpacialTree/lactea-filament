@@ -16,7 +16,7 @@ class OutflowPlot:
     """ 
     Class for quickly plotting outflows from astronomical data cubes.
     """
-    def __init__(self, position, l=5*u.arcsec, w=5*u.arcsec, restfreq=None, cube_fn=default_fn, reg=None):
+    def __init__(self, position=None, l=5*u.arcsec, w=5*u.arcsec, restfreq=None, cube_fn=default_fn, reg=None):
         """ 
         Parameters
         ----------
@@ -31,11 +31,13 @@ class OutflowPlot:
         cube_fn : str, optional
             File path to the FITS file containing the spectral cube.
         """
-        assert position.isscalar, "Only scalar SkyCoord objects are supported."
 
         self.position = position
         self.l = l
         self.w = w
+
+        if position is None and reg is None:
+            raise ValueError("Either position or reg must be provided.")
 
         self.cube_fn = cube_fn
 
@@ -67,7 +69,7 @@ class OutflowPlot:
         Extract the subcube defined by the region.
         """
         cube = self.open_cube()
-        if isinstance(self.reg, list):
+        if isinstance(self.reg, list) or isinstance(self.reg, Regions):
             subcube = cube.subcube_from_regions(self.reg)
         else:
             subcube = cube.subcube_from_regions([self.reg])
@@ -201,13 +203,13 @@ def make_levels(data, level_type='percentages', nlevels=5):
     nlevels : int, optional
         Number of contour levels to generate.
     """
-    if level_type == 'start-step-multiplier':
+    if level_type == 'start-step-multiplier' or level_type == 'start-step':
         levels = start_step_multiplier(data, nlevels=nlevels)
-    elif level_type == 'min-max-scaling':
+    elif level_type == 'min-max-scaling' or level_type == 'min-max':
         levels = min_max_scaling(data, nlevels=nlevels)
     elif level_type == 'percentages' or level_type == 'percentile':
         levels = percentages(data, nlevels=nlevels)
-    elif level_type == 'mean-sigma-list':
+    elif level_type == 'mean-sigma-list' or level_type == 'mean-sigma':
         levels = mean_sigma_list(data, nlevels=nlevels)
     else:
         raise ValueError("Invalid level_type. Options are 'start-step-multiplier', 'min-max-scaling', 'percentages', 'mean-sigma-list'.")
