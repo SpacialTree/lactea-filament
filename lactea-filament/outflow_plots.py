@@ -4,6 +4,9 @@ from astropy.io import fits
 import astropy.units as u
 from astropy.wcs import WCS
 from astropy.coordinates import SkyCoord
+import regions
+from regions import Regions
+from spectral_cube import SpectralCube
 
 default_fn = '/orange/adamginsburg/jwst/cloudc/alma/ACES/uid___A001_X15a0_X1a8.s38_0.Sgr_A_star_sci.spw27.cube.I.iter1.image.pbcor.fits'
 default_restfreq = 86.84696*u.GHz # ACES SiO 2-1
@@ -27,6 +30,7 @@ class OutflowPlot:
         cube_fn : str, optional
             File path to the FITS file containing the spectral cube.
         """
+        assert position.isscalar, "Only scalar SkyCoord objects are supported."
 
         self.position = position
         self.l = l
@@ -48,7 +52,7 @@ class OutflowPlot:
         if reg is not None:
             self.reg = reg
         else:
-            self.reg = regions.RectangleSkyRegion(self.position, width=self.l, height=self.w)
+            self.reg = regions.RectangleSkyRegion(position, self.l, self.w)
 
     def open_cube(self):
         """ 
@@ -132,7 +136,7 @@ class OutflowPlot:
         """
         data_max = np.nanmax(data)
         data_min = np.nanmin(data)
-        levels = np.linspace(mom0_min, mom0_max, nlevels)
+        levels = np.linspace(data_min, data_max, nlevels)
         return levels
 
     def make_percentile_list(self, data, percentiles=[5, 95]):
