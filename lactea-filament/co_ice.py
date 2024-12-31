@@ -140,11 +140,11 @@ def get_mass_estimate(ext_map, ww, dist=5*u.kpc, co_abundance=10**(-4), mpp=2.8*
     grid_N = np.nansum(ext_map)*u.cm**(-2) * mpp * pixel_area_physical / co_abundance
     return grid_N.to(u.Msun)
 
-def plot_Av_COice(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), reg=None):
+def plot_Av_COice(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), reg=None, extras=False, label=None):
     cat_red = cat.catalog[(cat.color('f182m', 'f410m') > color_cut) | (np.isnan(cat.band('f182m')) & ~np.isnan(cat.band('f410m')))]
     if reg is not None:
         ww = ex.get_wcs()
-        cat_red = JWSTCatalog(cat_red.table_region_mask(reg, ww))
+        cat_red = JWSTCatalog(JWSTCatalog(cat_red).table_region_mask(reg, ww))
     else:
         cat_red = JWSTCatalog(cat_red)
 
@@ -153,24 +153,50 @@ def plot_Av_COice(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), reg=None):
     dmag_466m410, cols = co_ice_modeling()
     inferred_co_column_av212410 = np.interp(unextincted_466m410_av212410, dmag_466m410[cols<1e21], cols[cols<1e21])
 
-    fig = plt.figure(figsize=(8,6))
-    plt.semilogy(av212410, inferred_co_column_av212410, marker=',', linestyle='none', label='Av 212/410')
+    #fig = plt.figure(figsize=(8,6))
+    if label is not None:
+        plt.plot(av212410, inferred_co_column_av212410, marker=',', linestyle='none', label=label)
+    else:
+        plt.semilogy(av212410, inferred_co_column_av212410, marker=',', linestyle='none', label='Av 212/410')
 
     NCOofAV = 2.21e21 * np.linspace(0.1, 100, 1000) * 1e-4
     plt.xlim(-5, 95)
     plt.ylim(2e15, 5e20)
     #pl.plot([10, 35], [1e17, 1e20], 'k--', label='log N = 0.12 A$_V$ + 15.8');
-    # by-eye fit
-    x1,y1 = 10,2e17
-    x2,y2 = 43,1e19
-    x1,y1 = 33,8e16
-    x2,y2 = 80,3e19
-    m = (np.log10(y2) - np.log10(y1)) / (x2 - x1)
-    b = np.log10(y1 / 10**(m * x1))
-    plt.plot([x1, x2], 10**np.array([x1*m+b, x2*m+b]), 'k--', label=f'log N = {m:0.2f} A$_V$ + {b:0.1f}')
-    plt.plot(np.linspace(0.1, 100, 1000), NCOofAV,
+
+    if extras:
+        # by eye fit Filament
+        x1,y1 = 25,2e17
+        x2,y2 = 40,5e18
+        m = (np.log10(y2) - np.log10(y1)) / (x2 - x1)
+        b = np.log10(y1 / 10**(m * x1))
+        plt.plot([x1, x2], 10**np.array([x1*m+b, x2*m+b]), 'k--', label=f'log N = {m:0.2f} A$_V$ + {b:0.1f} [Filament]')
+
+        # by-eye fit Brick
+        x1,y1 = 10,2e17
+        x2,y2 = 43,1e19
+        x1,y1 = 33,8e16
+        x2,y2 = 80,3e19
+        m = (np.log10(y2) - np.log10(y1)) / (x2 - x1)
+        b = np.log10(y1 / 10**(m * x1))
+        plt.plot([x1, x2], 10**np.array([x1*m+b, x2*m+b]), 'b--', label=f'log N = {m:0.2f} A$_V$ + {b:0.1f} [Ginsburg 2023 Brick]')
+        plt.plot([7, 23], [0.5e17, 7e17], 'g', label='log N = 0.07 A$_V$ + 16.2 [BGW 2015]')
+        plt.plot(np.linspace(0.1, 100, 1000), NCOofAV,
             label='100% of CO in ice if N(H$_2$)=2.2$\\times10^{21}$ A$_V$', color='r', linestyle=':')
-    plt.plot([7, 23], [0.5e17, 7e17], 'g', label='log N = 0.07 A$_V$ + 16.2 [BGW 2015]')
-    plt.xlabel("A$_V$ from [F212N]-[F410M]")
+    
+    plt.xlabel("A$_V$ from [F182M]-[F410M]")
     plt.ylabel("N(CO) ice\nfrom Hudgins 1993 constants,\n4000K Phoenix atmosphere")
+    plt.yscale('log')
     plt.legend()
+
+    #return av212410, inferred_co_column_av212410
+
+def plot_ice_CCD(cat, ax=None, bins=100, threshold=5, cmap='autumn_r', color='k', s=1):
+    import mpl_plot_templates as template
+    x = np.array(cat.color('f182m', 'f212n'))
+    x[x>5] = np.nan
+    y = np.array(cat.color('f410m', 'f466n'))
+    
+    template.adaptive_param_plot(x, y, threshold=threshold, bins=bins, cmap=cmap, marker_color=color, markersize=s, axis=ax)
+    plt.xlabel('F182M - F212N')
+    plt.ylabel('F410M - F466N');
