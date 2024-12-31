@@ -139,3 +139,38 @@ def get_mass_estimate(ext_map, ww, dist=5*u.kpc, co_abundance=10**(-4), mpp=2.8*
     pixel_area_physical = (ww.proj_plane_pixel_scales()[0] * dist).to(u.cm, u.dimensionless_angles())**2
     grid_N = np.nansum(ext_map)*u.cm**(-2) * mpp * pixel_area_physical / co_abundance
     return grid_N.to(u.Msun)
+
+def plot_Av_COice(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), reg=None):
+    cat_red = cat.catalog[(cat.color('f182m', 'f410m') > color_cut) | (np.isnan(cat.band('f182m')) & ~np.isnan(cat.band('f410m')))]
+    if reg is not None:
+        ww = ex.get_wcs()
+        cat_red = JWSTCatalog(cat_red.table_region_mask(reg, ww))
+    else:
+        cat_red = JWSTCatalog(cat_red)
+
+    av212410 = cat.get_Av('f212n', 'f410m')
+    unextincted_466m410_av212410 = unextinct(cat, ext, 'f466n', 'f410m')
+    dmag_466m410, cols = co_ice_modeling()
+    inferred_co_column_av212410 = np.interp(unextincted_466m410_av212410, dmag_466m410[cols<1e21], cols[cols<1e21])
+
+    fig = plt.figure(figsize=(8,6))
+    plt.semilogy(av212410, inferred_co_column_av212410, marker=',', linestyle='none', label='Av 212/410')
+
+    NCOofAV = 2.21e21 * np.linspace(0.1, 100, 1000) * 1e-4
+    plt.xlim(-5, 95)
+    plt.ylim(2e15, 5e20)
+    #pl.plot([10, 35], [1e17, 1e20], 'k--', label='log N = 0.12 A$_V$ + 15.8');
+    # by-eye fit
+    x1,y1 = 10,2e17
+    x2,y2 = 43,1e19
+    x1,y1 = 33,8e16
+    x2,y2 = 80,3e19
+    m = (np.log10(y2) - np.log10(y1)) / (x2 - x1)
+    b = np.log10(y1 / 10**(m * x1))
+    plt.plot([x1, x2], 10**np.array([x1*m+b, x2*m+b]), 'k--', label=f'log N = {m:0.2f} A$_V$ + {b:0.1f}')
+    plt.plot(np.linspace(0.1, 100, 1000), NCOofAV,
+            label='100% of CO in ice if N(H$_2$)=2.2$\\times10^{21}$ A$_V$', color='r', linestyle=':')
+    plt.plot([7, 23], [0.5e17, 7e17], 'g', label='log N = 0.07 A$_V$ + 16.2 [BGW 2015]')
+    plt.xlabel("A$_V$ from [F212N]-[F410M]")
+    plt.ylabel("N(CO) ice\nfrom Hudgins 1993 constants,\n4000K Phoenix atmosphere")
+    plt.legend()
