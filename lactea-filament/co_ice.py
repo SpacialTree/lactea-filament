@@ -196,6 +196,9 @@ def plot_ice_CCD(cat, ax=None, bins=100, threshold=5, cmap='autumn_r', color='k'
     x = np.array(cat.color('f182m', 'f212n'))
     x[x>5] = np.nan
     y = np.array(cat.color('f410m', 'f466n'))
+    y[y>5] = np.nan
+    if ax is None:
+        ax = plt.subplot()
     
     template.adaptive_param_plot(x, y, threshold=threshold, bins=bins, cmap=cmap, marker_color=color, markersize=s, axis=ax)
     plt.xlabel('F182M - F212N')
