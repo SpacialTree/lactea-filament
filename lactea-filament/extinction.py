@@ -67,10 +67,16 @@ def interpolate_grid(grid, fwhm):
     return grid
 
 def get_wcs(pos=SkyCoord('17:46:20.6290029866', '-28:37:49.5114204513', unit=(u.hour, u.deg)), 
-            l=113.8*u.arcsec, w=3.3*u.arcmin):
+            l=113.8*u.arcsec, w=3.3*u.arcmin, short=False):
     reg = regions.RectangleSkyRegion(pos, width=l, height=w)
-    cutout_405 = cm.get_cutout_405(pos, w, l)
-    return cutout_405.wcs
+    if not short:
+        cutout_405 = cm.get_cutout_405(pos, w, l)
+        return cutout_405.wcs
+    elif short:
+        cutout_187 = cm.get_cutout_187(pos, w, l)
+        return cutout_187.wcs
+    else:
+        return None
 
 def make_stellar_separation_map_interp(cat=cat_filament, color_cut=2.0, ext=CT06_MWGC(),
                                        pos=SkyCoord('17:46:20.6290029866', '-28:37:49.5114204513', unit=(u.hour, u.deg)), 
@@ -157,6 +163,9 @@ def make_extinction_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWGC(),
     Av[too_red] = Av_fill
 
     grid = fill_grid(grid, data, Av)
+
+    mask_grid = cm.get_cutout_187(pos, w, l).data == 0
+    grid[mask_grid] = np.nan
 
     grid = interpolate_grid(grid, fwhm)
 
