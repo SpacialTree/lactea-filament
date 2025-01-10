@@ -1,4 +1,4 @@
 # Region file format: DS9 CARTA 4.0.0-beta.1
 global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1
-icrs
-ellipse(266.576902571, -28.579947964, 19.6994", 17.5887", 90) # color=#2EE6D6 width=2 text={cloudc2} font="helvetica 10 normal roman"
+galactic
+polygon(0.387695797, 0.058464843, 0.386897783, 0.054878417, 0.382487301, 0.053112467, 0.382119951, 0.047477539, 0.378736324, 0.048629720, 0.375058264, 0.048845214, 0.377555498, 0.050766438, 0.374596350, 0.053522786, 0.375447425, 0.056299804, 0.373709957, 0.057922851, 0.377870032, 0.059712890, 0.382913163, 0.058917643, 0.385562252, 0.060532877) # color=#2EE6D6 width=2
