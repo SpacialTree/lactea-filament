@@ -100,8 +100,11 @@ class JWSTCatalog(Plotter):
         return mask
 
     def get_region_mask(self, reg, wcs):
-        mask = reg[0].contains(self.coords, wcs=wcs)
+        #mask = reg[0].contains(self.coords, wcs=wcs)
         #np.array([reg[0].contains(coord, wcs=wcs) for coord in self.coords])
+        mask = np.zeros(len(self.catalog), dtype=bool)
+        for r in reg:
+            mask += r.contains(self.coords, wcs=wcs)
         return mask
 
     def table_region_mask(self, reg, wcs):
@@ -166,3 +169,33 @@ def make_cat_raw():
     basetable = Table.read(cat_fn)
     base_jwstcatalog = JWSTCatalog(basetable)
     return base_jwstcatalog
+
+def make_brick_cat():
+    #basepath = '/orange/adamginsburg/jwst/brick/'
+    cat_fn = '/orange/adamginsburg/jwst/brick/catalogs/basic_merged_indivexp_photometry_tables_merged_qualcuts_oksep2221.fits'
+    print(f"Reading {cat_fn}")
+    basetable = Table.read(cat_fn)
+
+    # Create JWSTCatalog object
+    base_jwstcatalog = JWSTCatalog(basetable)
+
+    # Mask for quality factor
+    mask_qf = base_jwstcatalog.get_qf_mask(0.4)
+
+    # Mask for count
+    mask_count = base_jwstcatalog.get_count_mask()
+
+    # Mask for bad bright stars
+    mask_brights = base_jwstcatalog.get_brights_mask()
+
+    # Mask for detections in more than one band
+    mask_multi = base_jwstcatalog.get_multi_detection_mask()
+
+    # Combine Masks
+    mask = np.logical_and(mask_qf, mask_count)
+    mask = np.logical_and(mask, mask_brights)
+    mask = np.logical_and(mask, mask_multi)
+
+    # Return catalog with quality factor mask
+    cat_use = JWSTCatalog(basetable[mask])
+    return cat_use
