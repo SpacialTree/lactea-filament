@@ -71,7 +71,7 @@ def co_ice_modeling():
     molecule = 'co'
     # ocdb version gives nonsense
     # CO molecule constants 
-    consts = load_molecule(molecule) # OCDB = optical constants database
+    consts = load_molecule_ocdb(molecule) # OCDB = optical constants database
     # phx4000 = stellar atmosphere model spectrum at 4000K
     xarr = phx4000['nu'].quantity.to(u.um, u.spectral())
     # column densities of CO ice
