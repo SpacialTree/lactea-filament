@@ -189,7 +189,7 @@ def plot_Av_COice(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), reg=None, e
     plt.yscale('log')
     plt.legend()
 
-    #return av212410, inferred_co_column_av212410
+    return av212410, inferred_co_column_av212410
 
 def plot_ice_CCD(cat, ax=None, bins=100, threshold=5, cmap='autumn_r', color='k', s=1):
     import mpl_plot_templates as template
