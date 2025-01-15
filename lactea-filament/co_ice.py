@@ -140,7 +140,7 @@ def get_mass_estimate(ext_map, ww, dist=5*u.kpc, co_abundance=10**(-4), mpp=2.8*
     grid_N = np.nansum(ext_map)*u.cm**(-2) * mpp * pixel_area_physical / co_abundance
     return grid_N.to(u.Msun)
 
-def plot_Av_COice(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), reg=None, extras=False, label=None):
+def plot_Av_COice(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), reg=None, extras=False, label=None, **kwargs):
     cat_red = cat.catalog[(cat.color('f182m', 'f410m') > color_cut) | (np.isnan(cat.band('f182m')) & ~np.isnan(cat.band('f410m')))]
     if reg is not None:
         ww = ex.get_wcs()
@@ -154,10 +154,7 @@ def plot_Av_COice(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), reg=None, e
     inferred_co_column_av212410 = np.interp(unextincted_466m410_av212410, dmag_466m410[cols<1e21], cols[cols<1e21])
 
     #fig = plt.figure(figsize=(8,6))
-    if label is not None:
-        plt.plot(av212410, inferred_co_column_av212410, marker=',', linestyle='none', label=label)
-    else:
-        plt.semilogy(av212410, inferred_co_column_av212410, marker=',', linestyle='none', label='Av 212/410')
+    plt.scatter(av212410, inferred_co_column_av212410, label='Av 212/410', **kwargs)
 
     NCOofAV = 2.21e21 * np.linspace(0.1, 100, 1000) * 1e-4
     plt.xlim(-5, 95)
@@ -165,9 +162,16 @@ def plot_Av_COice(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), reg=None, e
     #pl.plot([10, 35], [1e17, 1e20], 'k--', label='log N = 0.12 A$_V$ + 15.8');
 
     if extras:
+        ## by eye fit Filament
+        #x1,y1 = 25,2e17
+        #x2,y2 = 40,5e18
+        #m = (np.log10(y2) - np.log10(y1)) / (x2 - x1)
+        #b = np.log10(y1 / 10**(m * x1))
+        #plt.plot([x1, x2], 10**np.array([x1*m+b, x2*m+b]), 'k--', label=f'log N = {m:0.2f} A$_V$ + {b:0.1f} [Filament]')
+
         # by eye fit Filament
-        x1,y1 = 25,2e17
-        x2,y2 = 40,5e18
+        x1,y1 = 22,1e17
+        x2,y2 = 50,7e18
         m = (np.log10(y2) - np.log10(y1)) / (x2 - x1)
         b = np.log10(y1 / 10**(m * x1))
         plt.plot([x1, x2], 10**np.array([x1*m+b, x2*m+b]), 'k--', label=f'log N = {m:0.2f} A$_V$ + {b:0.1f} [Filament]')
