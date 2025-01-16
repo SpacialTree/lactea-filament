@@ -84,7 +84,8 @@ class JWSTCatalog(Plotter):
         #mask = np.logical_and(mask, mas_182)
         #mas_212 = np.logical_or(np.array(self.catalog['qfit_f212n'])<qf, np.isnan(np.array(self.catalog['mag_ab_f212n'])))
         #mask = np.logical_and(mask, mas_212)
-        bands = [colname[-5:] for colname in self.catalog.colnames if colname.startswith(f'qfit_')]
+        bands = self.get_band_names()
+        #[colname[-5:] for colname in self.catalog.colnames if colname.startswith(f'qfit_')]
         #mask = np.array([np.logical_or(np.array(self.catalog[f'qfit_{band}']) < qf, np.isnan(np.array(self.catalog[f'mag_ab_{band}']))) for band in bands])
         mask = np.logical_or.reduce([np.logical_or(np.array(catalog[f'qfit_{band}']) < qf, np.isnan(np.array(catalog[f'mag_ab_{band}']))) for band in bands])
 
@@ -122,7 +123,7 @@ class JWSTCatalog(Plotter):
     def get_multi_detection_mask(self):
         # Mask for detection in more than one filter
         combine_mask = np.zeros(len(self.catalog), dtype=int)
-        for band in ['f405n', 'f410m', 'f466n', 'f182m', 'f187n', 'f212n']:
+        for band in self.get_band_names():
             combine_mask += ~np.isnan(self.catalog[f'mag_ab_{band}'])
 
         return combine_mask > 1
