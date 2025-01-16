@@ -13,8 +13,6 @@ from regions import Regions
 from astroquery.svo_fps import SvoFps
 from dust_extinction.averages import CT06_MWGC
 
-basepath = '/orange/adamginsburg/jwst/cloudc/'
-
 class JWSTCatalog(Plotter):
     def __init__(self, catalog):
         super().__init__()
@@ -158,7 +156,7 @@ def make_cat_use(basepath = '/orange/adamginsburg/jwst/cloudc/'):
     cat_use = JWSTCatalog(basetable[mask])
     return cat_use
 
-def make_cat_raw():
+def make_cat_raw(basepath='/orange/adamginsburg/jwst/cloudc/'):
     cat_fn = f'{basepath}/catalogs/basic_merged_indivexp_photometry_tables_merged.fits'
     basetable = Table.read(cat_fn)
     base_jwstcatalog = JWSTCatalog(basetable)
