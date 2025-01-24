@@ -46,6 +46,9 @@ class DecapsCatalog(Plotter):
         mag = -2.5*np.log10(flux)  # AB magnitude
         return mag
 
+    def get_band_names(self):
+        return self.filters
+
     def color(self, band1, band2):
         return self.band(band1) - self.band(band2)
 
