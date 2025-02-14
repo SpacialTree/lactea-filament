@@ -21,6 +21,8 @@ import icemodels
 imp.reload(icemodels)
 from icemodels import absorbed_spectrum, absorbed_spectrum_Gaussians, convsum, fluxes_in_filters, load_molecule, load_molecule_ocdb, atmo_model, molecule_data
 from icemodels.gaussian_model_components import co_ice_wls_icm, co_ice_wls, co_ice_widths, co_ice_bandstrength
+from icemodels.core import optical_constants_cache_dir, read_ocdb_file, download_all_ocdb
+
 from astroquery.svo_fps import SvoFps
 from astropy import table
 
@@ -48,7 +50,7 @@ data = np.array(pixcoords).T
 
 color_cut = 2.0
 
-def co_ice_modeling():
+def co_ice_modeling(ref_band='f410m'):
     
     filter_data = SvoFps.get_filter_list('JWST', instrument="NIRCam")
     filter_data.add_index('filterID')
@@ -63,7 +65,7 @@ def co_ice_modeling():
     xarr = np.linspace(3.95*u.um, 4.8*u.um, 5000)
     phx4000 = atmo_model(4000, xarr=xarr)
 
-    aspec = absorbed_spectrum(1e18*u.cm**-2, load_molecule('co'), spectrum=phx4000['fnu'], xarr=xarr)
+    #aspec = absorbed_spectrum(1e18*u.cm**-2, load_molecule_ocdb('co'), spectrum=phx4000['fnu'], xarr=xarr)
 
     trans = SvoFps.get_transmission_data(filterid)
 
@@ -71,7 +73,8 @@ def co_ice_modeling():
     molecule = 'co'
     # ocdb version gives nonsense
     # CO molecule constants 
-    consts = load_molecule_ocdb(molecule) # OCDB = optical constants database
+        #load_molecule_ocdb(molecule) # OCDB = optical constants database
+    consts = baratta_co = read_ocdb_file(f'{optical_constants_cache_dir}/1_CO_(1)_12.5K_Baratta.txt')
     # phx4000 = stellar atmosphere model spectrum at 4000K
     xarr = phx4000['nu'].quantity.to(u.um, u.spectral())
     # column densities of CO ice
@@ -87,7 +90,7 @@ def co_ice_modeling():
                                 spectrum=phx4000['fnu'].quantity, # flux array
                                 xarr=xarr, # wavelength array
                                 )
-        cmd_x = ('JWST/NIRCam.F410M', 'JWST/NIRCam.F466N')
+        cmd_x = (f'JWST/NIRCam.{ref_band.upper()}', 'JWST/NIRCam.F466N')
         flxd_ref = fluxes_in_filters(xarr, phx4000['fnu'].quantity)
         flxd = fluxes_in_filters(xarr, spec)
         # the star's magnitude
@@ -106,24 +109,31 @@ def co_ice_modeling():
     dmag_466m410 = np.array(dmags466) - np.array(dmags410) 
     return dmag_466m410, cols
 
-def unextinct(cat, ext, band1, band2):
-    return cat.color(band1, band2) + (ext(int(band1[1:-1])/100*u.um) - ext(int(band2[1:-1])/100*u.um)) * cat.get_Av('f182m', 'f410m')
+def unextinct(cat, ext, band1, band2, Av):
+    return cat.color(band1, band2) + (ext(int(band1[1:-1])/100*u.um) - ext(int(band2[1:-1])/100*u.um)) * Av#cat.get_Av('f182m', 'f410m')
 
-def make_co_column_map(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), pos=pos, l=l, w=w, fwhm=30, k=1, reg=None):
+def make_co_column_map(cat=cat_filament, color_cut=0.5, ext=CT06_MWLoc(), pos=pos, l=l, w=w, fwhm=30, k=1, reg=None):
+    # Which two bands to use for extinction correction?
+    ref_band1 = 'f182m'
+    ref_band2 = 'f212n'#'f410m'
+    # Which band, out of F405N and F410M to use for CO column density?
+    ref_band3 = 'f410m'#'f405n'#'f410m'
+
     cutout_405 = cm.get_cutout_405(pos, w, l)
     grid = ex.make_grid(cutout_405.data.shape)
     ww = cutout_405.wcs
     pixel_scale = ww.proj_plane_pixel_scales()[0] * u.deg.to(u.arcsec)
     
-    mask = (cat.color('f182m', 'f410m') > 2) | (np.isnan(np.array(cat.band('f182m'))) & ~np.isnan(np.array(cat.band('f410m'))))
-    mask = mask & (cat.color('f410m', 'f466n') < 0)
+    mask = (cat.color(ref_band1, ref_band2) > color_cut) | (np.isnan(np.array(cat.band(ref_band1))) & ~np.isnan(np.array(cat.band(ref_band2))))
+    mask = mask & (cat.color(ref_band3, 'f466n') < 0)
     cat = JWSTCatalog(cat.catalog[mask])
     if reg is not None:
         cat = JWSTCatalog(cat.table_region_mask(reg, ww))
+    Av = cat.get_Av(ref_band1, ref_band2, ext=ext)
 
-    dmag_466m410, cols = co_ice_modeling()
+    dmag_466m410, cols = co_ice_modeling(ref_band3)
 
-    unextincted_466m410_av182410 = unextinct(cat, ext, 'f466n', 'f410m')
+    unextincted_466m410_av182410 = unextinct(cat, ext, 'f466n', ref_band3, Av=Av)
     #measured_466m410 + (CT06_MWGC()(4.66*u.um) - CT06_MWGC()(4.10*u.um)) * av182410
     cat.catalog['N(CO)'] = np.interp(unextincted_466m410_av182410, dmag_466m410[cols<1e21], cols[cols<1e21])
 
@@ -141,20 +151,34 @@ def get_mass_estimate(ext_map, ww, dist=5*u.kpc, co_abundance=10**(-4), mpp=2.8*
     return grid_N.to(u.Msun)
 
 def plot_Av_COice(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), reg=None, extras=False, label=None, **kwargs):
-    cat_red = cat.catalog[(cat.color('f182m', 'f410m') > color_cut) | (np.isnan(cat.band('f182m')) & ~np.isnan(cat.band('f410m')))]
+    #cat_red = cat.catalog[(cat.color('f182m', 'f410m') > color_cut) | (np.isnan(cat.band('f182m')) & ~np.isnan(cat.band('f410m')))]
+    # Which two bands to use for extinction correction?
+    ref_band1 = 'f182m'
+    ref_band2 = 'f212n'#'f410m'
+    # Which band, out of F405N and F410M to use for CO column density?
+    ref_band3 = 'f410m'#'f405n'#'f410m'
+
+    cutout_405 = cm.get_cutout_405(pos, w, l)
+    grid = ex.make_grid(cutout_405.data.shape)
+    ww = cutout_405.wcs
+    pixel_scale = ww.proj_plane_pixel_scales()[0] * u.deg.to(u.arcsec)
+    
+    mask = (cat.color(ref_band1, ref_band2) > color_cut) | (np.isnan(np.array(cat.band(ref_band1))) & ~np.isnan(np.array(cat.band(ref_band2))))
+    mask = mask & (cat.color(ref_band3, 'f466n') < 0)
+    cat_red = JWSTCatalog(cat.catalog[mask])
     if reg is not None:
         ww = ex.get_wcs()
         cat_red = JWSTCatalog(JWSTCatalog(cat_red).table_region_mask(reg, ww))
     else:
         cat_red = JWSTCatalog(cat_red)
 
-    av212410 = cat.get_Av('f212n', 'f410m')
-    unextincted_466m410_av212410 = unextinct(cat, ext, 'f466n', 'f410m')
+    av212410 = cat.get_Av(ref_band2, ref_band1)
+    unextincted_466m410_av212410 = unextinct(cat, ext, 'f466n', ref_band3)
     dmag_466m410, cols = co_ice_modeling()
     inferred_co_column_av212410 = np.interp(unextincted_466m410_av212410, dmag_466m410[cols<1e21], cols[cols<1e21])
 
     #fig = plt.figure(figsize=(8,6))
-    plt.scatter(av212410, inferred_co_column_av212410, label='Av 212/410', **kwargs)
+    plt.scatter(av212410, inferred_co_column_av212410, label=f'Av {ref_band1}/{ref_band2}', **kwargs)
 
     NCOofAV = 2.21e21 * np.linspace(0.1, 100, 1000) * 1e-4
     plt.xlim(-5, 95)
