@@ -112,12 +112,15 @@ def co_ice_modeling(ref_band='f410m'):
 def unextinct(cat, ext, band1, band2, Av):
     return cat.color(band1, band2) + (ext(int(band1[1:-1])/100*u.um) - ext(int(band2[1:-1])/100*u.um)) * Av#cat.get_Av('f182m', 'f410m')
 
-def make_co_column_map(cat=cat_filament, color_cut=0.5, ext=CT06_MWLoc(), pos=pos, l=l, w=w, fwhm=30, k=1, reg=None):
+def make_co_column_map(cat=cat_filament, color_cut=0.5, ext=CT06_MWLoc(), pos=pos, l=l, w=w, fwhm=30, k=1, reg=None,
+                       ref_band1='f182m', ref_band2='f212n', ref_band3='f410m'):
     # Which two bands to use for extinction correction?
-    ref_band1 = 'f182m'
-    ref_band2 = 'f212n'#'f410m'
+    ref_band1 = ref_band1#'f182m'
+    ref_band2 = ref_band2#'f212n'#'f410m'
     # Which band, out of F405N and F410M to use for CO column density?
-    ref_band3 = 'f410m'#'f405n'#'f410m'
+    ref_band3 = ref_band3#'f410m'#'f405n'#'f410m'
+    if ref_band3 not in ['f410m', 'f405n']:
+        raise ValueError(f"ref_band3 must be either 'f410m' or 'f405n', not {ref_band3}")
 
     cutout_405 = cm.get_cutout_405(pos, w, l)
     grid = ex.make_grid(cutout_405.data.shape)
@@ -150,13 +153,16 @@ def get_mass_estimate(ext_map, ww, dist=5*u.kpc, co_abundance=10**(-4), mpp=2.8*
     grid_N = np.nansum(ext_map)*u.cm**(-2) * mpp * pixel_area_physical / co_abundance
     return grid_N.to(u.Msun)
 
-def plot_Av_COice(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), reg=None, extras=False, label=None, **kwargs):
+def plot_Av_COice(cat=cat_filament, color_cut=0.5, ext=CT06_MWLoc(), reg=None, extras=False, label=None, 
+                  ref_band1='f182m', ref_band2='f212n', ref_band3='f410m', **kwargs):
     #cat_red = cat.catalog[(cat.color('f182m', 'f410m') > color_cut) | (np.isnan(cat.band('f182m')) & ~np.isnan(cat.band('f410m')))]
     # Which two bands to use for extinction correction?
-    ref_band1 = 'f182m'
-    ref_band2 = 'f212n'#'f410m'
+    ref_band1 = ref_band1#'f182m'
+    ref_band2 = ref_band2#'f212n'#'f410m'
     # Which band, out of F405N and F410M to use for CO column density?
-    ref_band3 = 'f410m'#'f405n'#'f410m'
+    ref_band3 = ref_band3#'f410m'#'f405n'#'f410m'
+    if ref_band3 not in ['f410m', 'f405n']:
+        raise ValueError(f"ref_band3 must be either 'f410m' or 'f405n', not {ref_band3}")
 
     cutout_405 = cm.get_cutout_405(pos, w, l)
     grid = ex.make_grid(cutout_405.data.shape)
@@ -165,7 +171,7 @@ def plot_Av_COice(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), reg=None, e
     
     mask = (cat.color(ref_band1, ref_band2) > color_cut) | (np.isnan(np.array(cat.band(ref_band1))) & ~np.isnan(np.array(cat.band(ref_band2))))
     mask = mask & (cat.color(ref_band3, 'f466n') < 0)
-    cat_red = JWSTCatalog(cat.catalog[mask])
+    cat_red = cat.catalog[mask]
     if reg is not None:
         ww = ex.get_wcs()
         cat_red = JWSTCatalog(JWSTCatalog(cat_red).table_region_mask(reg, ww))
@@ -173,12 +179,15 @@ def plot_Av_COice(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), reg=None, e
         cat_red = JWSTCatalog(cat_red)
 
     av212410 = cat.get_Av(ref_band2, ref_band1)
-    unextincted_466m410_av212410 = unextinct(cat, ext, 'f466n', ref_band3)
+    unextincted_466m410_av212410 = unextinct(cat, ext, 'f466n', ref_band3, Av=av212410)
     dmag_466m410, cols = co_ice_modeling()
     inferred_co_column_av212410 = np.interp(unextincted_466m410_av212410, dmag_466m410[cols<1e21], cols[cols<1e21])
 
     #fig = plt.figure(figsize=(8,6))
-    plt.scatter(av212410, inferred_co_column_av212410, label=f'Av {ref_band1}/{ref_band2}', **kwargs)
+    if label is not None:
+        plt.scatter(av212410, inferred_co_column_av212410, label=label, **kwargs)
+    else:
+        plt.scatter(av212410, inferred_co_column_av212410, label=f'Av {ref_band1}/{ref_band2}', **kwargs)
 
     NCOofAV = 2.21e21 * np.linspace(0.1, 100, 1000) * 1e-4
     plt.xlim(-5, 95)
@@ -212,7 +221,7 @@ def plot_Av_COice(cat=cat_filament, color_cut=2.0, ext=CT06_MWLoc(), reg=None, e
         plt.plot(np.linspace(0.1, 100, 1000), NCOofAV,
             label='100% of CO in ice if N(H$_2$)=2.2$\\times10^{21}$ A$_V$', color='r', linestyle=':')
     
-    plt.xlabel("A$_V$ from [F182M]-[F410M]")
+    plt.xlabel(f"A$_V$ from [{ref_band2.upper()}]-[{ref_band1.upper()}]")
     plt.ylabel("N(CO) ice\nfrom Hudgins 1993 constants,\n4000K Phoenix atmosphere")
     plt.yscale('log')
     plt.legend()
