@@ -86,7 +86,7 @@ def co_ice_modeling(ref_band='f410m', consts_file='1_CO_(1)_12.5K_Baratta.txt'):
     return dmag_466m410, cols
 
 def unextinct(cat, ext, band1, band2, Av):
-    return cat.color(band1, band2) + (ext(int(band1[1:-1])/100*u.um) - ext(int(band2[1:-1])/100*u.um)) * Av#cat.get_Av('f182m', 'f410m')
+    return cat.color(band1, band2) + (ext(int(band1[1:-1])/100*u.um) - ext(int(band2[1:-1])/100*u.um)) * Av
 
 def get_co_column(cat, Av, ext=CT06_MWLoc(), ext_band1='f182m', ext_band2='f212n', ref_band='f410m', consts_file='1_CO_(1)_12.5K_Baratta.txt'):
     if ref_band not in ['f410m', 'f405n']:
