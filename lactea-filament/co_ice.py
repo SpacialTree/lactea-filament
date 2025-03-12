@@ -93,7 +93,7 @@ def get_co_column(cat, Av, ext=CT06_MWLoc(), ext_band1='f182m', ext_band2='f212n
         raise ValueError(f"ref_band must be either 'f410m' or 'f405n', not {ref_band}")
 
     dmag_466mref, cols = co_ice_modeling(ref_band, consts_file)
-    unextincted_color = unextinct(cat, ext, 'f466n', ref_band3, Av)
+    unextincted_color = unextinct(cat, ext, 'f466n', ref_band, Av)
 
     co_col = np.interp(unextincted_color, dmag_466mref[cols<1e21], cols[cols<1e21])
     return co_col
