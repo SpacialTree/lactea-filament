@@ -21,36 +21,14 @@ import icemodels
 imp.reload(icemodels)
 from icemodels import absorbed_spectrum, absorbed_spectrum_Gaussians, convsum, fluxes_in_filters, load_molecule, load_molecule_ocdb, atmo_model, molecule_data
 from icemodels.gaussian_model_components import co_ice_wls_icm, co_ice_wls, co_ice_widths, co_ice_bandstrength
-from icemodels.core import optical_constants_cache_dir, read_ocdb_file, download_all_ocdb
+from icemodels.core import optical_constants_cache_dir, read_ocdb_file, download_all_ocdb, composition_to_molweight
 
 from astroquery.svo_fps import SvoFps
 from astropy import table
 
-from jwst_plots import make_cat_use
-from jwst_plots import JWSTCatalog
-import extinction as ex
-import cutout_manager as cm
+import surface_density_plot as utils
 
-basepath = '/orange/adamginsburg/jwst/cloudc/'
-
-pos = SkyCoord('17:46:20.6290029866', '-28:37:49.5114204513', unit=(u.hour, u.deg))
-l = 113.8*u.arcsec
-w = 3.3*u.arcmin
-reg = regions.RectangleSkyRegion(pos, width=l, height=w)
-
-cutout_405 = cm.get_cutout_405(pos, w, l)
-ww = cutout_405.wcs
-data_405 = cutout_405.data
-pixel_scale = ww.proj_plane_pixel_scales()[0] * u.deg.to(u.arcsec)
-
-cat_use = make_cat_use()
-cat_filament = JWSTCatalog(cat_use.table_region_mask([reg], ww))
-pixcoords = ww.all_world2pix(cat_filament.coords.ra, cat_filament.coords.dec, 0)
-data = np.array(pixcoords).T
-
-color_cut = 2.0
-
-def co_ice_modeling(ref_band='f410m'):
+def co_ice_modeling(ref_band='f410m', consts_file='1_CO_(1)_12.5K_Baratta.txt'):
     
     filter_data = SvoFps.get_filter_list('JWST', instrument="NIRCam")
     filter_data.add_index('filterID')
@@ -65,16 +43,15 @@ def co_ice_modeling(ref_band='f410m'):
     xarr = np.linspace(3.95*u.um, 4.8*u.um, 5000)
     phx4000 = atmo_model(4000, xarr=xarr)
 
-    #aspec = absorbed_spectrum(1e18*u.cm**-2, load_molecule_ocdb('co'), spectrum=phx4000['fnu'], xarr=xarr)
-
     trans = SvoFps.get_transmission_data(filterid)
 
     # loading CO molecule
     molecule = 'co'
-    # ocdb version gives nonsense
     # CO molecule constants 
         #load_molecule_ocdb(molecule) # OCDB = optical constants database
-    consts = baratta_co = read_ocdb_file(f'{optical_constants_cache_dir}/1_CO_(1)_12.5K_Baratta.txt')
+    consts = baratta_co = read_ocdb_file(f'{optical_constants_cache_dir}/{consts_file}')
+    # Get the mean molecular weight of the ice compound
+    molwt = composition_to_molweight(consts.meta['composition'])*u.Da
     # phx4000 = stellar atmosphere model spectrum at 4000K
     xarr = phx4000['nu'].quantity.to(u.um, u.spectral())
     # column densities of CO ice
@@ -86,7 +63,7 @@ def co_ice_modeling(ref_band='f410m'):
     for col in cols:
         # for each column density of CO (ice?), make a spectrum of it 
         # absorbed_spectrum takes spectrum and puts the effects of an absorption feature in front of it 
-        spec = absorbed_spectrum(col*u.cm**-2, consts, molecular_weight=molecule_data[molecule]['molwt'],
+        spec = absorbed_spectrum(col*u.cm**-2, consts, molecular_weight=molwt,
                                 spectrum=phx4000['fnu'].quantity, # flux array
                                 xarr=xarr, # wavelength array
                                 )
@@ -104,7 +81,6 @@ def co_ice_modeling(ref_band='f410m'):
         dmags466.append(mags_x[1]-mags_x_star[1])
         dmags410.append(mags_x[0]-mags_x_star[0])
         # why would f410m change at all?
-        #print(f"{col:8.1g}, {mags_x[0]:8.1f}, {mags_x_star[0]:8.1f}, {mags_x[1]:8.1f}, {mags_x_star[1]:8.1f}, {dmags410[-1]:8.1f}, {dmags466[-1]:8.1f}")
 
     dmag_466m410 = np.array(dmags466) - np.array(dmags410) 
     return dmag_466m410, cols
@@ -112,102 +88,54 @@ def co_ice_modeling(ref_band='f410m'):
 def unextinct(cat, ext, band1, band2, Av):
     return cat.color(band1, band2) + (ext(int(band1[1:-1])/100*u.um) - ext(int(band2[1:-1])/100*u.um)) * Av#cat.get_Av('f182m', 'f410m')
 
-def make_co_column_map(cat=cat_filament, color_cut=0.5, ext=CT06_MWLoc(), pos=pos, l=l, w=w, fwhm=30, k=1, reg=None,
-                       ref_band1='f182m', ref_band2='f212n', ref_band3='f410m'):
-    # Which two bands to use for extinction correction?
-    ref_band1 = ref_band1#'f182m'
-    ref_band2 = ref_band2#'f212n'#'f410m'
-    # Which band, out of F405N and F410M to use for CO column density?
-    ref_band3 = ref_band3#'f410m'#'f405n'#'f410m'
-    if ref_band3 not in ['f410m', 'f405n']:
-        raise ValueError(f"ref_band3 must be either 'f410m' or 'f405n', not {ref_band3}")
+def get_co_column(cat, Av, ext=CT06_MWLoc(), ext_band1='f182m', ext_band2='f212n', ref_band='f410m', consts_file='1_CO_(1)_12.5K_Baratta.txt'):
+    if ref_band not in ['f410m', 'f405n']:
+        raise ValueError(f"ref_band must be either 'f410m' or 'f405n', not {ref_band}")
 
-    cutout_405 = cm.get_cutout_405(pos, w, l)
-    grid = ex.make_grid(cutout_405.data.shape)
-    ww = cutout_405.wcs
-    pixel_scale = ww.proj_plane_pixel_scales()[0] * u.deg.to(u.arcsec)
-    
-    mask = (cat.color(ref_band1, ref_band2) > color_cut) | (np.isnan(np.array(cat.band(ref_band1))) & ~np.isnan(np.array(cat.band(ref_band2))))
-    mask = mask & (cat.color(ref_band3, 'f466n') < 0)
-    cat = JWSTCatalog(cat.catalog[mask])
-    if reg is not None:
-        cat = JWSTCatalog(cat.table_region_mask(reg, ww))
-    Av = cat.get_Av(ref_band1, ref_band2, ext=ext)
+    dmag_466mref, cols = co_ice_modeling(ref_band, consts_file)
+    unextincted_color = unextinct(cat, ext, ext_band1, ext_band2, Av)
 
-    dmag_466m410, cols = co_ice_modeling(ref_band3)
+    co_col = np.interp(unextincted_color, dmag_466mref[cols<1e21], cols[cols<1e21])
+    return co_col
 
-    unextincted_466m410_av182410 = unextinct(cat, ext, 'f466n', ref_band3, Av=Av)
-    #measured_466m410 + (CT06_MWGC()(4.66*u.um) - CT06_MWGC()(4.10*u.um)) * av182410
-    cat.catalog['N(CO)'] = np.interp(unextincted_466m410_av182410, dmag_466m410[cols<1e21], cols[cols<1e21])
+def list_consts_files():
+    import os
+    from glob import glob
+    for file in glob(f'{optical_constants_cache_dir}/*.txt'):
+        print(file.split('/')[-1])
 
-    data = ex.get_pixcoords(cat, ww)
-    seps, inds = ex.make_kdtree(data, k=k)
-    grid = ex.fill_grid(grid, data, cat.catalog['N(CO)'])
+def make_co_column_map(cat, co_col, wcs, shape, fwhm=30, k=5):
+    grid = utils.make_grid(shape)
+    pixel_scale = wcs.proj_plane_pixel_scales()[0] * u.deg.to(u.arcsec)
 
-    grid_interp = ex.interpolate_grid(grid, fwhm)
+    data = utils.get_pixcoords(cat, wcs)
+    seps, inds = utils.make_kdtree(data, k=k)
 
-    return grid_interp
+    grid = utils.fill_grid(grid, data, co_col)
 
-def get_mass_estimate(ext_map, ww, dist=5*u.kpc, co_abundance=10**(-4), mpp=2.8*u.u):
-    pixel_area_physical = (ww.proj_plane_pixel_scales()[0] * dist).to(u.cm, u.dimensionless_angles())**2
-    grid_N = np.nansum(ext_map)*u.cm**(-2) * mpp * pixel_area_physical / co_abundance
-    return grid_N.to(u.Msun)
+    grid = utils.interpolate_grid(grid, fwhm)
 
-def plot_Av_COice(cat=cat_filament, color_cut=0.5, ext=CT06_MWLoc(), reg=None, extras=False, label=None, 
-                  ref_band1='f182m', ref_band2='f212n', ref_band3='f410m', **kwargs):
-    #cat_red = cat.catalog[(cat.color('f182m', 'f410m') > color_cut) | (np.isnan(cat.band('f182m')) & ~np.isnan(cat.band('f410m')))]
-    # Which two bands to use for extinction correction?
-    ref_band1 = ref_band1#'f182m'
-    ref_band2 = ref_band2#'f212n'#'f410m'
-    # Which band, out of F405N and F410M to use for CO column density?
-    ref_band3 = ref_band3#'f410m'#'f405n'#'f410m'
-    if ref_band3 not in ['f410m', 'f405n']:
-        raise ValueError(f"ref_band3 must be either 'f410m' or 'f405n', not {ref_band3}")
+    return grid
 
-    cutout_405 = cm.get_cutout_405(pos, w, l)
-    grid = ex.make_grid(cutout_405.data.shape)
-    ww = cutout_405.wcs
-    pixel_scale = ww.proj_plane_pixel_scales()[0] * u.deg.to(u.arcsec)
-    
-    mask = (cat.color(ref_band1, ref_band2) > color_cut) | (np.isnan(np.array(cat.band(ref_band1))) & ~np.isnan(np.array(cat.band(ref_band2))))
-    mask = mask & (cat.color(ref_band3, 'f466n') < 0)
-    cat_red = cat.catalog[mask]
-    if reg is not None:
-        ww = ex.get_wcs()
-        cat_red = JWSTCatalog(JWSTCatalog(cat_red).table_region_mask(reg, ww))
-    else:
-        cat_red = JWSTCatalog(cat_red)
-
-    av212410 = cat.get_Av(ref_band2, ref_band1)
-    unextincted_466m410_av212410 = unextinct(cat, ext, 'f466n', ref_band3, Av=av212410)
-    dmag_466m410, cols = co_ice_modeling()
-    inferred_co_column_av212410 = np.interp(unextincted_466m410_av212410, dmag_466m410[cols<1e21], cols[cols<1e21])
-
-    #fig = plt.figure(figsize=(8,6))
-    if label is not None:
-        plt.scatter(av212410, inferred_co_column_av212410, label=label, **kwargs)
-    else:
-        plt.scatter(av212410, inferred_co_column_av212410, label=f'Av {ref_band1}/{ref_band2}', **kwargs)
-
-    NCOofAV = 2.21e21 * np.linspace(0.1, 100, 1000) * 1e-4
-    plt.xlim(-5, 95)
-    plt.ylim(2e15, 5e20)
-    #pl.plot([10, 35], [1e17, 1e20], 'k--', label='log N = 0.12 A$_V$ + 15.8');
+def plot_Av_COice(Av, co_col, extras=False, ax=None, **kwargs):
+    if ax is None:
+        ax = plt.gca()
+    ax.scatter(Av, co_col, **kwargs)
+    ax.set_xlim(-5, 95)
+    ax.set_ylim(2e15, 5e20)
+    ax.set_yscale('log')
+    ax.set_xlabel(f"A$_V$")
+    ax.set_ylabel("N(CO)")
 
     if extras:
-        ## by eye fit Filament
-        #x1,y1 = 25,2e17
-        #x2,y2 = 40,5e18
-        #m = (np.log10(y2) - np.log10(y1)) / (x2 - x1)
-        #b = np.log10(y1 / 10**(m * x1))
-        #plt.plot([x1, x2], 10**np.array([x1*m+b, x2*m+b]), 'k--', label=f'log N = {m:0.2f} A$_V$ + {b:0.1f} [Filament]')
+        NCOofAV = 2.21e21 * np.linspace(0.1, 100, 1000) * 1e-4
 
-        # by eye fit Filament
+        # by-eye fit Filament
         x1,y1 = 22,1e17
         x2,y2 = 50,7e18
         m = (np.log10(y2) - np.log10(y1)) / (x2 - x1)
         b = np.log10(y1 / 10**(m * x1))
-        plt.plot([x1, x2], 10**np.array([x1*m+b, x2*m+b]), 'k--', label=f'log N = {m:0.2f} A$_V$ + {b:0.1f} [Filament]')
+        ax.plot([x1, x2], 10**np.array([x1*m+b, x2*m+b]), 'k--', label=f'log N = {m:0.2f} A$_V$ + {b:0.1f} [Filament]')
 
         # by-eye fit Brick
         x1,y1 = 10,2e17
@@ -216,17 +144,15 @@ def plot_Av_COice(cat=cat_filament, color_cut=0.5, ext=CT06_MWLoc(), reg=None, e
         x2,y2 = 80,3e19
         m = (np.log10(y2) - np.log10(y1)) / (x2 - x1)
         b = np.log10(y1 / 10**(m * x1))
-        plt.plot([x1, x2], 10**np.array([x1*m+b, x2*m+b]), 'b--', label=f'log N = {m:0.2f} A$_V$ + {b:0.1f} [Ginsburg 2023 Brick]')
-        plt.plot([7, 23], [0.5e17, 7e17], 'g', label='log N = 0.07 A$_V$ + 16.2 [BGW 2015]')
-        plt.plot(np.linspace(0.1, 100, 1000), NCOofAV,
-            label='100% of CO in ice if N(H$_2$)=2.2$\\times10^{21}$ A$_V$', color='r', linestyle=':')
-    
-    plt.xlabel(f"A$_V$ from [{ref_band2.upper()}]-[{ref_band1.upper()}]")
-    plt.ylabel("N(CO) ice\nfrom Hudgins 1993 constants,\n4000K Phoenix atmosphere")
-    plt.yscale('log')
-    plt.legend()
+        ax.plot([x1, x2], 10**np.array([x1*m+b, x2*m+b]), 'b--', label=f'log N = {m:0.2f} A$_V$ + {b:0.1f} [Ginsburg 2023 Brick]')
 
-    return av212410, inferred_co_column_av212410
+        # BGW 2015
+        ax.plot([7, 23], [0.5e17, 7e17], 'g', label='log N = 0.07 A$_V$ + 16.2 [BGW 2015]')
+
+        # 100% of CO in ice if N(H2)=2.2e21 A_V
+        ax.plot(np.linspace(0.1, 100, 1000), NCOofAV,
+            label='100% of CO in ice if N(H$_2$)=2.2$\\times10^{21}$ A$_V$', color='r', linestyle=':')
+        ax.legend()
 
 def plot_ice_CCD(cat, ax=None, bins=100, threshold=5, cmap='autumn_r', color='k', s=1):
     import mpl_plot_templates as template
