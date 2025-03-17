@@ -98,11 +98,13 @@ def get_co_column(cat, Av, ext=CT06_MWLoc(), ext_band1='f182m', ext_band2='f212n
     co_col = np.interp(unextincted_color, dmag_466mref[cols<1e21], cols[cols<1e21])
     return co_col
 
-def list_consts_files():
+def list_consts_files(wild='', verbose=True):
     import os
     from glob import glob
-    for file in glob(f'{optical_constants_cache_dir}/*.txt'):
-        print(file.split('/')[-1])
+    if verbose:
+        for file in glob(f'{optical_constants_cache_dir}/*{wild}*.txt'):
+            print(file.split('/')[-1])
+    return glob(f'{optical_constants_cache_dir}/*{wild}*.txt')
 
 def make_co_column_map(cat, co_col, wcs, shape, fwhm=30, k=5):
     grid = utils.make_grid(shape)
