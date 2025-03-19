@@ -46,7 +46,7 @@ def co_ice_modeling(ref_band='f410m', consts_file='1_CO_(1)_12.5K_Baratta.txt'):
     trans = SvoFps.get_transmission_data(filterid)
 
     # loading CO molecule
-    molecule = 'co'
+    # molecule = 'co'
     # CO molecule constants 
         #load_molecule_ocdb(molecule) # OCDB = optical constants database
     consts = baratta_co = read_ocdb_file(f'{optical_constants_cache_dir}/{consts_file}')
