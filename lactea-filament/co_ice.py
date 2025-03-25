@@ -51,7 +51,7 @@ def co_ice_modeling(ref_band='f410m', consts_file='1_CO_(1)_12.5K_Baratta.txt'):
         #load_molecule_ocdb(molecule) # OCDB = optical constants database
     consts = baratta_co = read_ocdb_file(f'{optical_constants_cache_dir}/{consts_file}')
     # Get the mean molecular weight of the ice compound
-    molwt = composition_to_molweight(consts.meta['composition'])*u.Da
+    molwt = composition_to_molweight(consts.meta['composition'])#*u.Da
     # phx4000 = stellar atmosphere model spectrum at 4000K
     xarr = phx4000['nu'].quantity.to(u.um, u.spectral())
     # column densities of CO ice
@@ -88,12 +88,13 @@ def co_ice_modeling(ref_band='f410m', consts_file='1_CO_(1)_12.5K_Baratta.txt'):
 def unextinct(cat, ext, band1, band2, Av):
     return cat.color(band1, band2) + (ext(int(band1[1:-1])/100*u.um) - ext(int(band2[1:-1])/100*u.um)) * Av
 
-def get_co_column(cat, Av, ext=CT06_MWLoc(), ext_band1='f182m', ext_band2='f212n', ref_band='f410m', consts_file='1_CO_(1)_12.5K_Baratta.txt'):
-    if ref_band not in ['f410m', 'f405n']:
-        raise ValueError(f"ref_band must be either 'f410m' or 'f405n', not {ref_band}")
+def get_co_column(cat, Av, ext=CT06_MWLoc(), ref_band='f410m', consts_file='1_CO_(1)_12.5K_Baratta.txt'):
+    #if ref_band not in ['f410m', 'f405n']:
+    #    raise ValueError(f"ref_band must be either 'f410m' or 'f405n', not {ref_band}")
 
     dmag_466mref, cols = co_ice_modeling(ref_band, consts_file)
     unextincted_color = unextinct(cat, ext, 'f466n', ref_band, Av)
+    #unextincted_color[unextincted_color>0] = np.nan
 
     co_col = np.interp(unextincted_color, dmag_466mref[cols<1e21], cols[cols<1e21])
     return co_col
