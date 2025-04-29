@@ -29,6 +29,46 @@ from astropy import table
 
 import surface_density_plot as utils
 
+from brick2221.analysis.make_icecolumn_fig9 import molscomps#, compute_molecular_column
+from brick2221.analysis.analysis_setup import basepath
+
+def compute_molecular_column(unextincted_466m410, av, dmag_tbl, basetable, ext, icemol='CO', ref_band='f410m'):
+    dmags466 = dmag_tbl['F466N']
+    dmags410 = dmag_tbl[ref_band.upper()]
+
+    comp = np.unique(dmag_tbl['composition'])[0]
+    molwt = u.Quantity(composition_to_molweight(comp), u.Da)
+    mols, comps = molscomps(comp)
+    mol_frac = comps[mols.index(icemol)] / sum(comps)
+
+    #mol_wt_tgtmol = Formula(icemol).mass * u.Da
+    #print(f'icemol={icemol}, molwt={molwt}, mol_wt_tgtmol={mol_wt_tgtmol}, comps={comps}, mols={mols}, massfrac={mol_massfrac}')
+
+    cols = dmag_tbl['column'] * mol_frac #molwt * mol_massfrac / (mol_wt_tgtmol)
+
+    dmag_466m410 = np.array(dmags466) - np.array(dmags410) 
+    inferred_molecular_column = np.interp(unextincted_466m410, dmag_466m410[cols<1e21], cols[cols<1e21])
+
+    return inferred_molecular_column
+
+def get_dmag_tbl():
+    from brick2221.analysis.analysis_setup import basepath
+    dmag_tbl = Table.read(f'{basepath}/tables/combined_ice_absorption_tables.ecsv')
+    dmag_tbl.add_index('mol_id')
+    dmag_tbl.add_index('composition')
+    return dmag_tbl
+
+def unextinct(cat, ext, band1, band2, Av):
+    EV_band2_band1 = (ext(int(band2[1:-1])/100*u.um) - ext(int(band1[1:-1])/100*u.um))
+    return cat.color(band1, band2) + EV_band2_band1 * Av
+
+def get_co_ice_column(cat, av, ext=CT06_MWLoc(), ref_band='f410m'):
+    unextincted_466mref = unextinct(cat, ext=ext, band1='f466n', band2=ref_band, Av=av)
+    dmag_tbl = get_dmag_tbl()
+    dmag_tbl_sel = dmag_tbl.loc['H2O:CO (10:1)']
+
+    compute_molecular_column(unextincted_466mref, av, dmag_tbl, cat.catalog, ext, icemol='CO', ref_band=ref_band)
+
 def co_ice_modeling(ref_band='f410m', consts_file='1_CO_(1)_12.5K_Baratta.txt'):
     
     filter_data = SvoFps.get_filter_list('JWST', instrument="NIRCam")
@@ -92,12 +132,8 @@ def co_ice_modeling(ref_band='f410m', consts_file='1_CO_(1)_12.5K_Baratta.txt'):
     dmag_466m410 = np.array(dmags466) - np.array(dmags410) 
     return dmag_466m410, cols
 
-def unextinct(cat, ext, band1, band2, Av):
-    EV_band2_band1 = (ext(int(band2[1:-1])/100*u.um) - ext(int(band1[1:-1])/100*u.um))
-    return cat.color(band1, band2) + EV_band2_band1 * Av
-    #return cat.color(band1, band2) + (ext(int(band1[1:-1])/100*u.um) - ext(int(band2[1:-1])/100*u.um)) * Av
 
-def get_co_column(cat, Av, ext=CT06_MWLoc(), ref_band='f410m', consts_file='1_CO_(1)_12.5K_Baratta.txt'):
+def get_co_column_old(cat, Av, ext=CT06_MWLoc(), ref_band='f410m', consts_file='1_CO_(1)_12.5K_Baratta.txt'):
     #if ref_band not in ['f410m', 'f405n']:
     #    raise ValueError(f"ref_band must be either 'f410m' or 'f405n', not {ref_band}")
 
