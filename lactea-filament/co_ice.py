@@ -6,6 +6,7 @@ from astropy.visualization import simple_norm
 import astropy.units as u 
 from astropy.coordinates import SkyCoord
 import regions
+from astropy.table import Table
 from regions import Regions
 from scipy.spatial import KDTree
 from astropy.convolution import interpolate_replace_nans, Gaussian2DKernel
@@ -21,7 +22,7 @@ import icemodels
 imp.reload(icemodels)
 from icemodels import absorbed_spectrum, absorbed_spectrum_Gaussians, convsum, fluxes_in_filters, load_molecule, load_molecule_ocdb, atmo_model, molecule_data
 from icemodels.gaussian_model_components import co_ice_wls_icm, co_ice_wls, co_ice_widths, co_ice_bandstrength
-from icemodels.core import optical_constants_cache_dir, read_ocdb_file, download_all_ocdb, composition_to_molweight
+from icemodels.core import optical_constants_cache_dir, read_ocdb_file, download_all_ocdb, composition_to_molweight, read_lida_file
 
 from astroquery.svo_fps import SvoFps
 from astropy import table
@@ -49,7 +50,13 @@ def co_ice_modeling(ref_band='f410m', consts_file='1_CO_(1)_12.5K_Baratta.txt'):
     # molecule = 'co'
     # CO molecule constants 
         #load_molecule_ocdb(molecule) # OCDB = optical constants database
-    consts = baratta_co = read_ocdb_file(f'{optical_constants_cache_dir}/{consts_file}')
+    try: 
+        consts = baratta_co = read_ocdb_file(f'{optical_constants_cache_dir}/{consts_file}')
+    except: 
+        try: 
+            consts = read_lida_file(f'{optical_constants_cache_dir}/{consts_file}')
+        except:
+            consts = Table.read(f'{optical_constants_cache_dir}/{consts_file}', format='ascii')
     # Get the mean molecular weight of the ice compound
     molwt = composition_to_molweight(consts.meta['composition'])#*u.Da
     # phx4000 = stellar atmosphere model spectrum at 4000K
@@ -86,17 +93,19 @@ def co_ice_modeling(ref_band='f410m', consts_file='1_CO_(1)_12.5K_Baratta.txt'):
     return dmag_466m410, cols
 
 def unextinct(cat, ext, band1, band2, Av):
-    return cat.color(band1, band2) + (ext(int(band1[1:-1])/100*u.um) - ext(int(band2[1:-1])/100*u.um)) * Av
+    EV_band2_band1 = (ext(int(band2[1:-1])/100*u.um) - ext(int(band1[1:-1])/100*u.um))
+    return cat.color(band1, band2) + EV_band2_band1 * Av
+    #return cat.color(band1, band2) + (ext(int(band1[1:-1])/100*u.um) - ext(int(band2[1:-1])/100*u.um)) * Av
 
 def get_co_column(cat, Av, ext=CT06_MWLoc(), ref_band='f410m', consts_file='1_CO_(1)_12.5K_Baratta.txt'):
     #if ref_band not in ['f410m', 'f405n']:
     #    raise ValueError(f"ref_band must be either 'f410m' or 'f405n', not {ref_band}")
 
-    dmag_466mref, cols = co_ice_modeling(ref_band, consts_file)
-    unextincted_color = unextinct(cat, ext, 'f466n', ref_band, Av)
+    dmag_466m410, cols = co_ice_modeling(ref_band, consts_file)
+    unextincted_color = unextinct(cat, ext=ext, band1='f466n', band2=ref_band, Av=Av) #  testing out revering the ref band and f446n
     #unextincted_color[unextincted_color>0] = np.nan
 
-    co_col = np.interp(unextincted_color, dmag_466mref[cols<1e21], cols[cols<1e21])
+    co_col = np.interp(unextincted_color, dmag_466m410[cols<1e21], cols[cols<1e21])
     return co_col
 
 def list_consts_files(wild='', verbose=True):
