@@ -29,10 +29,9 @@ from astropy import table
 
 import surface_density_plot as utils
 
-from brick2221.analysis.make_icecolumn_fig9 import molscomps#, compute_molecular_column
-from brick2221.analysis.analysis_setup import basepath
+from brick2221.analysis.analysis_setup import basepath, molscomps
 
-def compute_molecular_column(unextincted_466m410, av, dmag_tbl, basetable, ext, icemol='CO', ref_band='f410m'):
+def compute_molecular_column(unextincted_466m410, dmag_tbl, icemol='CO', ref_band='f410m'):
     dmags466 = dmag_tbl['F466N']
     dmags410 = dmag_tbl[ref_band.upper()]
 
@@ -40,9 +39,6 @@ def compute_molecular_column(unextincted_466m410, av, dmag_tbl, basetable, ext, 
     molwt = u.Quantity(composition_to_molweight(comp), u.Da)
     mols, comps = molscomps(comp)
     mol_frac = comps[mols.index(icemol)] / sum(comps)
-
-    #mol_wt_tgtmol = Formula(icemol).mass * u.Da
-    #print(f'icemol={icemol}, molwt={molwt}, mol_wt_tgtmol={mol_wt_tgtmol}, comps={comps}, mols={mols}, massfrac={mol_massfrac}')
 
     cols = dmag_tbl['column'] * mol_frac #molwt * mol_massfrac / (mol_wt_tgtmol)
 
@@ -54,8 +50,8 @@ def compute_molecular_column(unextincted_466m410, av, dmag_tbl, basetable, ext, 
 def get_dmag_tbl():
     from brick2221.analysis.analysis_setup import basepath
     dmag_tbl = Table.read(f'{basepath}/tables/combined_ice_absorption_tables.ecsv')
-    dmag_tbl.add_index('mol_id')
     dmag_tbl.add_index('composition')
+    dmag_tbl.add_index('mol_id')
     return dmag_tbl
 
 def unextinct(cat, ext, band1, band2, Av):
@@ -67,7 +63,7 @@ def get_co_ice_column(cat, av, ext=CT06_MWLoc(), ref_band='f410m'):
     dmag_tbl = get_dmag_tbl()
     dmag_tbl_sel = dmag_tbl.loc['H2O:CO (10:1)']
 
-    compute_molecular_column(unextincted_466mref, av, dmag_tbl, cat.catalog, ext, icemol='CO', ref_band=ref_band)
+    return compute_molecular_column(unextincted_466mref, dmag_tbl_sel, icemol='CO', ref_band=ref_band)
 
 def co_ice_modeling(ref_band='f410m', consts_file='1_CO_(1)_12.5K_Baratta.txt'):
     
@@ -179,11 +175,18 @@ def plot_Av_COice(Av, co_col, extras=False, ax=None, **kwargs):
         NCOofAV = 2.21e21 * np.linspace(0.1, 100, 1000) * 1e-4
 
         # by-eye fit Filament
-        x1,y1 = 22,1e17
-        x2,y2 = 50,7e18
-        m = (np.log10(y2) - np.log10(y1)) / (x2 - x1)
-        b = np.log10(y1 / 10**(m * x1))
-        ax.plot([x1, x2], 10**np.array([x1*m+b, x2*m+b]), 'k--', label=f'log N = {m:0.2f} A$_V$ + {b:0.1f} [Filament]')
+        #x1,y1 = 22,1e17
+        #x2,y2 = 50,7e18
+        #m = (np.log10(y2) - np.log10(y1)) / (x2 - x1)
+        #b = np.log10(y1 / 10**(m * x1))
+        #ax.plot([x1, x2], 10**np.array([x1*m+b, x2*m+b]), 'k--', label=f'log N = {m:0.2f} A$_V$ + {b:0.1f} [Filament]')
+        plt.ylim(1e17, 4e19)
+        pt1 = (20, 3e17)
+        pt2 = (37, 4e18)
+        m = (np.log10(pt2[1]) - np.log10(pt1[1])) / (pt2[0] - pt1[0])
+        b = np.log10(pt1[1] / 10**(m * pt1[0]))
+        ax.plot([pt1[0], pt2[0]], 10**np.array([pt1[0]*m+b, pt2[0]*m+b]), 'k--', label=f'log N = {m:0.2f} A$_V$ + {b:0.1f} [Filament]')
+        #plt.plot([pt1[0], pt2[0]], [pt1[1], pt2[1]], label='Filament', color='k', linestyle='--')
 
         # by-eye fit Brick
         x1,y1 = 10,2e17
