@@ -38,13 +38,13 @@ def fill_grid(grid, data, value):
         grid[y, x] = value[i]
     return grid
 
-def get_grid_mask(cat, Av, shape, wcs, k=5):
+def get_grid_mask(cat, shape, wcs, k=5):
     grid = make_grid(shape)
 
     data = get_pixcoords(cat, wcs)
     seps, inds = make_kdtree(data, k=k)
 
-    grid = fill_grid(grid, data, Av)
+    grid = fill_grid(grid, data, np.ones(len(cat.catalog)))
     grid_bool = ~np.isnan(grid)
     return grid_bool
 
