@@ -25,7 +25,10 @@ class VVVCatalog(Plotter):
         self.dec = self.coords.dec
 
     def band(self, band): # J, H, Ks, Y, Z
-        return self.catalog[f'{band}1ap1']
+        try:
+            return self.catalog[f'{band}1ap1']
+        except KeyError:
+            return self.catalog[f'{band}mag3']
 
     def color(self, band1, band2):
         print('why')
