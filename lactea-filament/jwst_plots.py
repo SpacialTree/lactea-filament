@@ -126,6 +126,14 @@ class JWSTCatalog(Plotter):
 
         return combine_mask > 1
 
+    def get_all_filters_mask(self):
+        # Mask for detection in all filters
+        combine_mask = np.zeros(len(self.catalog), dtype=int)
+        for band in self.get_band_names():
+            combine_mask += ~np.isnan(self.catalog[f'mag_ab_{band}'])
+
+        return combine_mask == len(self.get_band_names())
+
 
 def make_cat_use(basepath = '/orange/adamginsburg/jwst/cloudc/'):
     # Open catalog file
@@ -151,6 +159,39 @@ def make_cat_use(basepath = '/orange/adamginsburg/jwst/cloudc/'):
     mask = np.logical_and(mask_qf, mask_count)
     mask = np.logical_and(mask, mask_brights)
     mask = np.logical_and(mask, mask_multi)
+
+    # Return catalog with quality factor mask
+    cat_use = JWSTCatalog(basetable[mask])
+    return cat_use
+
+def make_cat_refined(basepath='/orange/adamginsburg/jwst/cloudc/'):
+    # Open catalog file
+    cat_fn = f'{basepath}/catalogs/basic_merged_indivexp_photometry_tables_merged.fits'
+    basetable = Table.read(cat_fn)
+
+    # Create JWSTCatalog object
+    base_jwstcatalog = JWSTCatalog(basetable)
+
+    # Mask for quality factor
+    mask_qf = base_jwstcatalog.get_qf_mask(0.4)
+
+    # Mask for count
+    mask_count = base_jwstcatalog.get_count_mask()
+
+    # Mask for bad bright stars
+    mask_brights = base_jwstcatalog.get_brights_mask()
+
+    # Mask for detections in more than one band
+    mask_multi = base_jwstcatalog.get_multi_detection_mask()
+
+    # Mask for detection in all filters
+    mask_all_filters = base_jwstcatalog.get_all_filters_mask()
+
+    # Combine Masks
+    mask = np.logical_and(mask_qf, mask_count)
+    mask = np.logical_and(mask, mask_brights)
+    mask = np.logical_and(mask, mask_multi)
+    mask = np.logical_and(mask, mask_all_filters)
 
     # Return catalog with quality factor mask
     cat_use = JWSTCatalog(basetable[mask])
