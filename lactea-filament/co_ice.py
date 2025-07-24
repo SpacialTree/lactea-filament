@@ -161,7 +161,7 @@ def make_co_column_map(cat, co_col, wcs, shape, fwhm=30, k=5):
 
     return grid
 
-def plot_Av_COice(Av, co_col, extras=False, ax=None, **kwargs):
+def plot_Av_COice(Av, co_col, extras=False, ax=None, Av_offset=0, **kwargs):
     if ax is None:
         ax = plt.gca()
     ax.scatter(Av, co_col, **kwargs)
@@ -172,7 +172,7 @@ def plot_Av_COice(Av, co_col, extras=False, ax=None, **kwargs):
     ax.set_ylabel("N(CO)")
 
     if extras:
-        NCOofAV = 2.21e21 * np.linspace(0.1, 100, 1000) * 1e-4
+        NCOofAV = 1.1e21 * np.linspace(0.1, 100, 1000) * 1e-4
 
         # by-eye fit Filament
         #x1,y1 = 22,1e17
@@ -201,8 +201,8 @@ def plot_Av_COice(Av, co_col, extras=False, ax=None, **kwargs):
         ax.plot([7, 23], [0.5e17, 7e17], 'g', label='log N = 0.07 A$_V$ + 16.2 [BGW 2015]')
 
         # 100% of CO in ice if N(H2)=2.2e21 A_V
-        ax.plot(np.linspace(0.1, 100, 1000), NCOofAV,
-            label='100% of CO in ice if N(H$_2$)=2.2$\\times10^{21}$ A$_V$', color='r', linestyle=':')
+        ax.plot(np.linspace(0.1, 100, 1000)+Av_offset, NCOofAV,
+            label='100% of CO in ice if N(H$_2$)=1.1$\\times10^{21}$ A$_V$', color='k', linestyle=':')
         ax.legend()
 
 def plot_ice_CCD(cat, ax=None, bins=100, threshold=5, cmap='autumn_r', color='k', s=1):
