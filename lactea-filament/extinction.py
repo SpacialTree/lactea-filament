@@ -185,7 +185,8 @@ def get_column_density_estimate(ext_map, ww, dist=5*u.kpc, factor=2.21*10**21*u.
     return grid_N
 
 
-def get_mass_estimate(ext_map, ww, dist=5*u.kpc, factor=2.21*10**21*u.cm**-2, mpp=2.8*u.u):
+def get_mass_estimate(ext_map, ww, dist=5*u.kpc, factor=1.105*10**21*u.cm**-2, mpp=2.8*u.u):
+    # N_H=2.21*10**21*u.cm**-2
     grid_N = np.nansum(ext_map) * factor
     pixel_area_physical = (ww.proj_plane_pixel_scales()[0] * dist).to(u.cm, u.dimensionless_angles())**2
     return (grid_N * pixel_area_physical * mpp).to(u.Msun)
