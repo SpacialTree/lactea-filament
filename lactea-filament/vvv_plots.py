@@ -28,8 +28,12 @@ class VVVCatalog(Plotter):
         try:
             return self.catalog[f'{band}1ap1']
         except KeyError:
-            return self.catalog[f'{band}mag3']
-
+            try: 
+                return self.catalog[f'{band}mag3']
+            except KeyError:
+                print('')
+                return self.catalog[f'{band}mag']
+                
     def color(self, band1, band2):
         print('why')
         return self.band(band1) - self.band(band2)
