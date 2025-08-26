@@ -61,7 +61,7 @@ def unextinct(cat, ext, band1, band2, Av):
 def get_co_ice_column(cat, av, ext=CT06_MWLoc(), ref_band='f410m'):
     unextincted_466mref = unextinct(cat, ext=ext, band1='f466n', band2=ref_band, Av=av)
     dmag_tbl = get_dmag_tbl()
-    dmag_tbl_sel = dmag_tbl.loc['H2O:CO (10:1)']
+    dmag_tbl_sel = dmag_tbl.loc['H2O:CO:CO2 (10:1:1)']
 
     return compute_molecular_column(unextincted_466mref, dmag_tbl_sel, icemol='CO', ref_band=ref_band)
 
@@ -170,6 +170,7 @@ def plot_Av_COice(Av, co_col, extras=False, ax=None, Av_offset=0, **kwargs):
     ax.set_yscale('log')
     ax.set_xlabel(f"A$_V$")
     ax.set_ylabel("N(CO)")
+    l1 = plt.legend()
 
     if extras:
         NCOofAV = 1.1e21 * np.linspace(0.1, 100, 1000) * 1e-4
